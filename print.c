@@ -346,8 +346,10 @@ char* datatype_string(MPI_Datatype t)
   else if (t == MPI_2INT) return "MPI_2INT";
   else if (t == MPI_LONG_DOUBLE_INT) return "MPI_LONG_DOUBLE_INT";
   else if (t == MPI_LONG_LONG_INT) return "MPI_LONG_LONG_INT";
+#if ( MPI_VERSION < 3 )
   else if (t == MPI_LB) return "MPI_LB";
   else if (t == MPI_UB) return "MPI_UB";     
+#endif
   else return "<datatype>";
 }
 

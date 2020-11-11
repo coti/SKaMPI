@@ -51,7 +51,11 @@ MPI_Datatype func_mpi_type_hvector(int count, int length, int stride, MPI_Dataty
 {
   MPI_Datatype newtype;
 
+#if ( MPI_VERSION < 3 )
   MPI_Type_hvector(count, length, stride, oldtype, &newtype);
+#else
+  MPI_Type_create_hvector(count, length, stride, oldtype, &newtype);
+#endif
   MPI_Type_commit(&newtype);
   return newtype;
 }
@@ -72,7 +76,11 @@ MPI_Datatype func_mpi_type_hindexed(IArray blocklengths, IArray displacements, M
   MPI_Datatype newtype;
   
   assert (blocklengths.n == displacements.n);
-  MPI_Type_hindexed(blocklengths.n, blocklengths.v, (MPI_Aint*) displacements.v, oldtype, &newtype);
+#if ( MPI_VERSION < 3 ) 
+ MPI_Type_hindexed(blocklengths.n, blocklengths.v, (MPI_Aint*) displacements.v, oldtype, &newtype);
+#else
+ MPI_Type_create_hindexed(blocklengths.n, blocklengths.v, (MPI_Aint*) displacements.v, oldtype, &newtype);
+#endif
   MPI_Type_commit(&newtype);
   
   return newtype;
@@ -83,7 +91,11 @@ MPI_Datatype func_mpi_type_struct(IArray blocklengths, IArray displacements, DAr
   MPI_Datatype newtype;
   
   assert((blocklengths.n == displacements.n) && (displacements.n == dtypes.n));
+#if ( MPI_VERSION < 3 ) 
   MPI_Type_struct(blocklengths.n, blocklengths.v, (MPI_Aint*) displacements.v, dtypes.v, &newtype);
+#else
+  MPI_Type_create_struct(blocklengths.n, blocklengths.v, (MPI_Aint*) displacements.v, dtypes.v, &newtype);
+#endif
   MPI_Type_commit(&newtype);
   
   return newtype;

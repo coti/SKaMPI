@@ -304,8 +304,11 @@ void init_builtin_datatypes(void)
   insert_datatype("MPI_LONG_DOUBLE_INT", MPI_LONG_DOUBLE_INT );
   insert_datatype("MPI_LONG_LONG_INT"  , MPI_LONG_LONG_INT   );
 
+#if ( MPI_VERSION < 3 )
   insert_datatype("MPI_LB"             , MPI_LB              );
   insert_datatype("MPI_UB"             , MPI_UB              );
+#endif
+
   /* @@@ check if these are necessary ?? 
        MPI_PACKED
        MPI_UB - For MPI_Type_struct ; an upper-bound indicator
