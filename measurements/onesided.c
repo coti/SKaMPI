@@ -1166,15 +1166,15 @@ double measure_Pingpong_Put_Put(int count, MPI_Datatype datatype, MPI_Info info,
   double start_time = 1.0, end_time = 0.0;
   int i;
 
-  MPI_Win_create(get_recv_buffer(), onesided_winsize, 1, info,
-		 get_measurement_comm(), &onesided_win);
-
   if (iterations<0) {
     return -1.0;   /* indicate that this definitely is an error */
   }
   if (iterations==0) {
     return 0.0;    /* avoid division by zero at the end */
   }
+
+  MPI_Win_create(get_recv_buffer(), onesided_winsize, 1, info,
+		 get_measurement_comm(), &onesided_win);
 
   MPI_Win_fence(MPI_MODE_NOPRECEDE, onesided_win);
   start_time = start_synchronization();
