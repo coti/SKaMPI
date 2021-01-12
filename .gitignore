@@ -1,0 +1,13 @@
+*.o
+Makefile
+lex.yy.c
+m.c
+.deps
+measurements/.deps
+parser.h
+parser.c
+autom4te.cache/
+config.log
+config.status
+skampi
+measurements/.dirstamp
