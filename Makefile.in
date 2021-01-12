@@ -78,15 +78,17 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = skampi$(EXEEXT)
 subdir = .
-DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/configure $(am__configure_deps) \
-	$(top_srcdir)/build-aux/depcomp COPYING README \
-	build-aux/depcomp build-aux/install-sh build-aux/missing \
+DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
+	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
+	$(top_srcdir)/configure $(am__configure_deps) parser.c \
+	$(top_srcdir)/build-aux/depcomp $(top_srcdir)/build-aux/ylwrap \
+	COPYING build-aux/compile build-aux/depcomp \
+	build-aux/install-sh build-aux/missing build-aux/ylwrap \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/acx_bison.m4 \
-	$(top_srcdir)/m4/acx_mpi.m4 $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/acx_mpi.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -96,16 +98,21 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am__dirstamp = $(am__leading_dot)dirstamp
+am__objects_1 = measurements/bug.$(OBJEXT) measurements/coll.$(OBJEXT) \
+	measurements/datatypes.$(OBJEXT) \
+	measurements/delayed.$(OBJEXT) measurements/demo.$(OBJEXT) \
+	measurements/helpers.$(OBJEXT) measurements/io.$(OBJEXT) \
+	measurements/localio.$(OBJEXT) measurements/mmisc.$(OBJEXT) \
+	measurements/node2node.$(OBJEXT) \
+	measurements/onesided.$(OBJEXT) measurements/pt2pt.$(OBJEXT) \
+	measurements/openshmem.$(OBJEXT)
 am_skampi_OBJECTS = accounting.$(OBJEXT) autorefine.$(OBJEXT) \
 	compile.$(OBJEXT) debug.$(OBJEXT) exec.$(OBJEXT) \
 	main.$(OBJEXT) measurement.$(OBJEXT) mem.$(OBJEXT) \
 	misc.$(OBJEXT) output.$(OBJEXT) print.$(OBJEXT) \
 	symboltable.$(OBJEXT) synchronize.$(OBJEXT) m.$(OBJEXT) \
-	lexer.$(OBJEXT) parser.$(OBJEXT) bug.$(OBJEXT) coll.$(OBJEXT) \
-	datatypes.$(OBJEXT) delayed.$(OBJEXT) demo.$(OBJEXT) \
-	helpers.$(OBJEXT) io.$(OBJEXT) localio.$(OBJEXT) \
-	mmisc.$(OBJEXT) node2node.$(OBJEXT) onesided.$(OBJEXT) \
-	pt2pt.$(OBJEXT) openshmem.$(OBJEXT)
+	parser.$(OBJEXT) $(am__objects_1)
 skampi_OBJECTS = $(am_skampi_OBJECTS)
 skampi_DEPENDENCIES =
 AM_V_P = $(am__v_P_@AM_V@)
@@ -124,10 +131,6 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
-AM_V_lt = $(am__v_lt_@AM_V@)
-am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
-am__v_lt_0 = --silent
-am__v_lt_1 = 
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 AM_V_CC = $(am__v_CC_@AM_V@)
@@ -140,6 +143,14 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
+am__yacc_c2h = sed -e s/cc$$/hh/ -e s/cpp$$/hpp/ -e s/cxx$$/hxx/ \
+		   -e s/c++$$/h++/ -e s/c$$/h/
+YACCCOMPILE = $(YACC) $(AM_YFLAGS) $(YFLAGS)
+AM_V_YACC = $(am__v_YACC_@AM_V@)
+am__v_YACC_ = $(am__v_YACC_@AM_DEFAULT_V@)
+am__v_YACC_0 = @echo "  YACC    " $@;
+am__v_YACC_1 = 
+YLWRAP = $(top_srcdir)/build-aux/ylwrap
 SOURCES = $(skampi_SOURCES)
 DIST_SOURCES = $(skampi_SOURCES)
 am__can_run_installinfo = \
@@ -192,7 +203,6 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
-BISON = @BISON@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -210,6 +220,9 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
+LEX = @LEX@
+LEXLIB = @LEXLIB@
+LEX_OUTPUT_ROOT = @LEX_OUTPUT_ROOT@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
@@ -230,6 +243,8 @@ SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
+YACC = @YACC@
+YFLAGS = @YFLAGS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -248,7 +263,6 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
-have_prog_bison = @have_prog_bison@
 host_alias = @host_alias@
 htmldir = @htmldir@
 includedir = @includedir@
@@ -274,29 +288,48 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I config 
-skampi_SOURCES = accounting.c autorefine.c compile.c debug.c exec.c main.c measurement.c mem.c misc.c output.c print.c symboltable.c synchronize.c m.c lexer.c parser.c \
-	measurements/bug.c measurements/coll.c measurements/datatypes.c measurements/delayed.c measurements/demo.c measurements/helpers.c measurements/io.c measurements/localio.c measurements/mmisc.c measurements/node2node.c measurements/onesided.c measurements/pt2pt.c measurements/openshmem.c
 
-skampi_LDADD = -lm
+#BUILT_SOURCES = lexer.c parser.c parser.h m.c
+#CLEANFILES = lexer.c parser.c parser.h m.c
+
+#SUBDIRS = measurements
+MEASUREMENTS = \
+	measurements/bug.c measurements/coll.c measurements/datatypes.c measurements/delayed.c measurements/demo.c measurements/helpers.c measurements/io.c \
+	measurements/localio.c measurements/mmisc.c measurements/node2node.c measurements/onesided.c measurements/pt2pt.c \
+	measurements/openshmem.c
+
+#MEASUREMENTS = \
+#	bug.c coll.c datatypes.c delayed.c demo.c helpers.c io.c \
+#	localio.c mmisc.c node2node.c onesided.c pt2pt.c \
+#	openshmem.c
+skampi_SOURCES = \
+	accounting.c autorefine.c compile.c debug.c exec.c main.c measurement.c mem.c misc.c output.c print.c symboltable.c synchronize.c \
+	m.c \
+	parser.y lexer.lex \
+	$(MEASUREMENTS)
+
+
+#lexer.c parser.c 
+skampi_LDADD = -lm @LEXLIB@
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .o .obj
+.SUFFIXES: .c .o .obj .y
 am--refresh: Makefile
 	@:
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
-	      echo ' cd $(srcdir) && $(AUTOMAKE) --foreign'; \
-	      $(am__cd) $(srcdir) && $(AUTOMAKE) --foreign \
+	      echo ' cd $(srcdir) && $(AUTOMAKE) --gnu'; \
+	      $(am__cd) $(srcdir) && $(AUTOMAKE) --gnu \
 		&& exit 0; \
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign Makefile
+	  $(AUTOMAKE) --gnu Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -358,6 +391,38 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+measurements/$(am__dirstamp):
+	@$(MKDIR_P) measurements
+	@: > measurements/$(am__dirstamp)
+measurements/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) measurements/$(DEPDIR)
+	@: > measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/bug.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/coll.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/datatypes.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/delayed.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/demo.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/helpers.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/io.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/localio.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/mmisc.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/node2node.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/onesided.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/pt2pt.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/openshmem.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
 
 skampi$(EXEEXT): $(skampi_OBJECTS) $(skampi_DEPENDENCIES) $(EXTRA_skampi_DEPENDENCIES) 
 	@rm -f skampi$(EXEEXT)
@@ -365,235 +430,58 @@ skampi$(EXEEXT): $(skampi_OBJECTS) $(skampi_DEPENDENCIES) $(EXTRA_skampi_DEPENDE
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f measurements/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/accounting.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/autorefine.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bug.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/coll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datatypes.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delayed.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/demo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exec.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/helpers.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/io.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lexer.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/localio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/measurement.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmisc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/node2node.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/onesided.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/openshmem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/output.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/print.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pt2pt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/symboltable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/synchronize.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/bug.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/coll.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/datatypes.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/delayed.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/demo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/helpers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/io.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/localio.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/mmisc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/node2node.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/onesided.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/openshmem.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/pt2pt.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c $<
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c `$(CYGPATH_W) '$<'`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-bug.o: measurements/bug.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT bug.o -MD -MP -MF $(DEPDIR)/bug.Tpo -c -o bug.o `test -f 'measurements/bug.c' || echo '$(srcdir)/'`measurements/bug.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/bug.Tpo $(DEPDIR)/bug.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/bug.c' object='bug.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o bug.o `test -f 'measurements/bug.c' || echo '$(srcdir)/'`measurements/bug.c
-
-bug.obj: measurements/bug.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT bug.obj -MD -MP -MF $(DEPDIR)/bug.Tpo -c -o bug.obj `if test -f 'measurements/bug.c'; then $(CYGPATH_W) 'measurements/bug.c'; else $(CYGPATH_W) '$(srcdir)/measurements/bug.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/bug.Tpo $(DEPDIR)/bug.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/bug.c' object='bug.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o bug.obj `if test -f 'measurements/bug.c'; then $(CYGPATH_W) 'measurements/bug.c'; else $(CYGPATH_W) '$(srcdir)/measurements/bug.c'; fi`
-
-coll.o: measurements/coll.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coll.o -MD -MP -MF $(DEPDIR)/coll.Tpo -c -o coll.o `test -f 'measurements/coll.c' || echo '$(srcdir)/'`measurements/coll.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/coll.Tpo $(DEPDIR)/coll.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/coll.c' object='coll.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coll.o `test -f 'measurements/coll.c' || echo '$(srcdir)/'`measurements/coll.c
-
-coll.obj: measurements/coll.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coll.obj -MD -MP -MF $(DEPDIR)/coll.Tpo -c -o coll.obj `if test -f 'measurements/coll.c'; then $(CYGPATH_W) 'measurements/coll.c'; else $(CYGPATH_W) '$(srcdir)/measurements/coll.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/coll.Tpo $(DEPDIR)/coll.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/coll.c' object='coll.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coll.obj `if test -f 'measurements/coll.c'; then $(CYGPATH_W) 'measurements/coll.c'; else $(CYGPATH_W) '$(srcdir)/measurements/coll.c'; fi`
-
-datatypes.o: measurements/datatypes.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT datatypes.o -MD -MP -MF $(DEPDIR)/datatypes.Tpo -c -o datatypes.o `test -f 'measurements/datatypes.c' || echo '$(srcdir)/'`measurements/datatypes.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/datatypes.Tpo $(DEPDIR)/datatypes.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/datatypes.c' object='datatypes.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o datatypes.o `test -f 'measurements/datatypes.c' || echo '$(srcdir)/'`measurements/datatypes.c
-
-datatypes.obj: measurements/datatypes.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT datatypes.obj -MD -MP -MF $(DEPDIR)/datatypes.Tpo -c -o datatypes.obj `if test -f 'measurements/datatypes.c'; then $(CYGPATH_W) 'measurements/datatypes.c'; else $(CYGPATH_W) '$(srcdir)/measurements/datatypes.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/datatypes.Tpo $(DEPDIR)/datatypes.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/datatypes.c' object='datatypes.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o datatypes.obj `if test -f 'measurements/datatypes.c'; then $(CYGPATH_W) 'measurements/datatypes.c'; else $(CYGPATH_W) '$(srcdir)/measurements/datatypes.c'; fi`
-
-delayed.o: measurements/delayed.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT delayed.o -MD -MP -MF $(DEPDIR)/delayed.Tpo -c -o delayed.o `test -f 'measurements/delayed.c' || echo '$(srcdir)/'`measurements/delayed.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/delayed.Tpo $(DEPDIR)/delayed.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/delayed.c' object='delayed.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o delayed.o `test -f 'measurements/delayed.c' || echo '$(srcdir)/'`measurements/delayed.c
-
-delayed.obj: measurements/delayed.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT delayed.obj -MD -MP -MF $(DEPDIR)/delayed.Tpo -c -o delayed.obj `if test -f 'measurements/delayed.c'; then $(CYGPATH_W) 'measurements/delayed.c'; else $(CYGPATH_W) '$(srcdir)/measurements/delayed.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/delayed.Tpo $(DEPDIR)/delayed.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/delayed.c' object='delayed.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o delayed.obj `if test -f 'measurements/delayed.c'; then $(CYGPATH_W) 'measurements/delayed.c'; else $(CYGPATH_W) '$(srcdir)/measurements/delayed.c'; fi`
-
-demo.o: measurements/demo.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT demo.o -MD -MP -MF $(DEPDIR)/demo.Tpo -c -o demo.o `test -f 'measurements/demo.c' || echo '$(srcdir)/'`measurements/demo.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/demo.Tpo $(DEPDIR)/demo.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/demo.c' object='demo.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o demo.o `test -f 'measurements/demo.c' || echo '$(srcdir)/'`measurements/demo.c
-
-demo.obj: measurements/demo.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT demo.obj -MD -MP -MF $(DEPDIR)/demo.Tpo -c -o demo.obj `if test -f 'measurements/demo.c'; then $(CYGPATH_W) 'measurements/demo.c'; else $(CYGPATH_W) '$(srcdir)/measurements/demo.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/demo.Tpo $(DEPDIR)/demo.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/demo.c' object='demo.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o demo.obj `if test -f 'measurements/demo.c'; then $(CYGPATH_W) 'measurements/demo.c'; else $(CYGPATH_W) '$(srcdir)/measurements/demo.c'; fi`
-
-helpers.o: measurements/helpers.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helpers.o -MD -MP -MF $(DEPDIR)/helpers.Tpo -c -o helpers.o `test -f 'measurements/helpers.c' || echo '$(srcdir)/'`measurements/helpers.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/helpers.Tpo $(DEPDIR)/helpers.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/helpers.c' object='helpers.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helpers.o `test -f 'measurements/helpers.c' || echo '$(srcdir)/'`measurements/helpers.c
-
-helpers.obj: measurements/helpers.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helpers.obj -MD -MP -MF $(DEPDIR)/helpers.Tpo -c -o helpers.obj `if test -f 'measurements/helpers.c'; then $(CYGPATH_W) 'measurements/helpers.c'; else $(CYGPATH_W) '$(srcdir)/measurements/helpers.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/helpers.Tpo $(DEPDIR)/helpers.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/helpers.c' object='helpers.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helpers.obj `if test -f 'measurements/helpers.c'; then $(CYGPATH_W) 'measurements/helpers.c'; else $(CYGPATH_W) '$(srcdir)/measurements/helpers.c'; fi`
-
-io.o: measurements/io.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT io.o -MD -MP -MF $(DEPDIR)/io.Tpo -c -o io.o `test -f 'measurements/io.c' || echo '$(srcdir)/'`measurements/io.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/io.Tpo $(DEPDIR)/io.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/io.c' object='io.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o io.o `test -f 'measurements/io.c' || echo '$(srcdir)/'`measurements/io.c
-
-io.obj: measurements/io.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT io.obj -MD -MP -MF $(DEPDIR)/io.Tpo -c -o io.obj `if test -f 'measurements/io.c'; then $(CYGPATH_W) 'measurements/io.c'; else $(CYGPATH_W) '$(srcdir)/measurements/io.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/io.Tpo $(DEPDIR)/io.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/io.c' object='io.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o io.obj `if test -f 'measurements/io.c'; then $(CYGPATH_W) 'measurements/io.c'; else $(CYGPATH_W) '$(srcdir)/measurements/io.c'; fi`
-
-localio.o: measurements/localio.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT localio.o -MD -MP -MF $(DEPDIR)/localio.Tpo -c -o localio.o `test -f 'measurements/localio.c' || echo '$(srcdir)/'`measurements/localio.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/localio.Tpo $(DEPDIR)/localio.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/localio.c' object='localio.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o localio.o `test -f 'measurements/localio.c' || echo '$(srcdir)/'`measurements/localio.c
-
-localio.obj: measurements/localio.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT localio.obj -MD -MP -MF $(DEPDIR)/localio.Tpo -c -o localio.obj `if test -f 'measurements/localio.c'; then $(CYGPATH_W) 'measurements/localio.c'; else $(CYGPATH_W) '$(srcdir)/measurements/localio.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/localio.Tpo $(DEPDIR)/localio.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/localio.c' object='localio.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o localio.obj `if test -f 'measurements/localio.c'; then $(CYGPATH_W) 'measurements/localio.c'; else $(CYGPATH_W) '$(srcdir)/measurements/localio.c'; fi`
-
-mmisc.o: measurements/mmisc.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmisc.o -MD -MP -MF $(DEPDIR)/mmisc.Tpo -c -o mmisc.o `test -f 'measurements/mmisc.c' || echo '$(srcdir)/'`measurements/mmisc.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mmisc.Tpo $(DEPDIR)/mmisc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/mmisc.c' object='mmisc.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmisc.o `test -f 'measurements/mmisc.c' || echo '$(srcdir)/'`measurements/mmisc.c
-
-mmisc.obj: measurements/mmisc.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmisc.obj -MD -MP -MF $(DEPDIR)/mmisc.Tpo -c -o mmisc.obj `if test -f 'measurements/mmisc.c'; then $(CYGPATH_W) 'measurements/mmisc.c'; else $(CYGPATH_W) '$(srcdir)/measurements/mmisc.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mmisc.Tpo $(DEPDIR)/mmisc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/mmisc.c' object='mmisc.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmisc.obj `if test -f 'measurements/mmisc.c'; then $(CYGPATH_W) 'measurements/mmisc.c'; else $(CYGPATH_W) '$(srcdir)/measurements/mmisc.c'; fi`
-
-node2node.o: measurements/node2node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT node2node.o -MD -MP -MF $(DEPDIR)/node2node.Tpo -c -o node2node.o `test -f 'measurements/node2node.c' || echo '$(srcdir)/'`measurements/node2node.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/node2node.Tpo $(DEPDIR)/node2node.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/node2node.c' object='node2node.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o node2node.o `test -f 'measurements/node2node.c' || echo '$(srcdir)/'`measurements/node2node.c
-
-node2node.obj: measurements/node2node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT node2node.obj -MD -MP -MF $(DEPDIR)/node2node.Tpo -c -o node2node.obj `if test -f 'measurements/node2node.c'; then $(CYGPATH_W) 'measurements/node2node.c'; else $(CYGPATH_W) '$(srcdir)/measurements/node2node.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/node2node.Tpo $(DEPDIR)/node2node.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/node2node.c' object='node2node.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o node2node.obj `if test -f 'measurements/node2node.c'; then $(CYGPATH_W) 'measurements/node2node.c'; else $(CYGPATH_W) '$(srcdir)/measurements/node2node.c'; fi`
-
-onesided.o: measurements/onesided.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT onesided.o -MD -MP -MF $(DEPDIR)/onesided.Tpo -c -o onesided.o `test -f 'measurements/onesided.c' || echo '$(srcdir)/'`measurements/onesided.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/onesided.Tpo $(DEPDIR)/onesided.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/onesided.c' object='onesided.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o onesided.o `test -f 'measurements/onesided.c' || echo '$(srcdir)/'`measurements/onesided.c
-
-onesided.obj: measurements/onesided.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT onesided.obj -MD -MP -MF $(DEPDIR)/onesided.Tpo -c -o onesided.obj `if test -f 'measurements/onesided.c'; then $(CYGPATH_W) 'measurements/onesided.c'; else $(CYGPATH_W) '$(srcdir)/measurements/onesided.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/onesided.Tpo $(DEPDIR)/onesided.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/onesided.c' object='onesided.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o onesided.obj `if test -f 'measurements/onesided.c'; then $(CYGPATH_W) 'measurements/onesided.c'; else $(CYGPATH_W) '$(srcdir)/measurements/onesided.c'; fi`
-
-pt2pt.o: measurements/pt2pt.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pt2pt.o -MD -MP -MF $(DEPDIR)/pt2pt.Tpo -c -o pt2pt.o `test -f 'measurements/pt2pt.c' || echo '$(srcdir)/'`measurements/pt2pt.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pt2pt.Tpo $(DEPDIR)/pt2pt.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/pt2pt.c' object='pt2pt.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pt2pt.o `test -f 'measurements/pt2pt.c' || echo '$(srcdir)/'`measurements/pt2pt.c
-
-pt2pt.obj: measurements/pt2pt.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pt2pt.obj -MD -MP -MF $(DEPDIR)/pt2pt.Tpo -c -o pt2pt.obj `if test -f 'measurements/pt2pt.c'; then $(CYGPATH_W) 'measurements/pt2pt.c'; else $(CYGPATH_W) '$(srcdir)/measurements/pt2pt.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pt2pt.Tpo $(DEPDIR)/pt2pt.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/pt2pt.c' object='pt2pt.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pt2pt.obj `if test -f 'measurements/pt2pt.c'; then $(CYGPATH_W) 'measurements/pt2pt.c'; else $(CYGPATH_W) '$(srcdir)/measurements/pt2pt.c'; fi`
-
-openshmem.o: measurements/openshmem.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT openshmem.o -MD -MP -MF $(DEPDIR)/openshmem.Tpo -c -o openshmem.o `test -f 'measurements/openshmem.c' || echo '$(srcdir)/'`measurements/openshmem.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/openshmem.Tpo $(DEPDIR)/openshmem.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/openshmem.c' object='openshmem.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o openshmem.o `test -f 'measurements/openshmem.c' || echo '$(srcdir)/'`measurements/openshmem.c
-
-openshmem.obj: measurements/openshmem.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT openshmem.obj -MD -MP -MF $(DEPDIR)/openshmem.Tpo -c -o openshmem.obj `if test -f 'measurements/openshmem.c'; then $(CYGPATH_W) 'measurements/openshmem.c'; else $(CYGPATH_W) '$(srcdir)/measurements/openshmem.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/openshmem.Tpo $(DEPDIR)/openshmem.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='measurements/openshmem.c' object='openshmem.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o openshmem.obj `if test -f 'measurements/openshmem.c'; then $(CYGPATH_W) 'measurements/openshmem.c'; else $(CYGPATH_W) '$(srcdir)/measurements/openshmem.c'; fi`
+.y.c:
+	$(AM_V_YACC)$(am__skipyacc) $(SHELL) $(YLWRAP) $< y.tab.c $@ y.tab.h `echo $@ | $(am__yacc_c2h)` y.output $*.output -- $(YACCCOMPILE)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -843,17 +731,20 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f measurements/$(DEPDIR)/$(am__dirstamp)
+	-rm -f measurements/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+	-rm -f parser.c
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ./$(DEPDIR) measurements/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -901,7 +792,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ./$(DEPDIR) measurements/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -937,6 +828,9 @@ uninstall-am: uninstall-binPROGRAMS
 	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
 	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
 
+
+m.c: $(MEASUREMENTS) extract.pl
+	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=measurements > m.c
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
