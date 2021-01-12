@@ -27,6 +27,14 @@ AC_PROG_LEX
 ACX_MPI([], [AC_MSG_ERROR([Cannot find an MPI compiler.])])
 CC="$MPICC"
 
+# Enable OpenSHMEM or not
+ENABLE_OPENSHMEM=0 # default
+AC_ARG_ENABLE([openshmem],
+	AS_HELP_STRING([--enable-openshmem], [Enable OpenSHMEM operations [default=no]]),
+	[ AM_CONDITIONAL(ENABLE_OPENSHMEM, true)
+       	  CFLAGS+=" -DSKAMPI_OPENSHMEM "],
+	[ AM_CONDITIONAL(ENABLE_OPENSHMEM, false) ] )
+
 # Tells automake to create a Makefile
 # See https://www.gnu.org/software/automake/manual/html_node/Requirements.html
 AC_CONFIG_FILES([Makefile])
