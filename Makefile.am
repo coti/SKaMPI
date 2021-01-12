@@ -16,10 +16,13 @@ skampi_SOURCES = \
 	parser.y lexer.lex \
 	$(MEASUREMENTS)
 
-skampi_LDADD = -lm @LEXLIB@
+skampi_LDADD = -lm @LEXLIB@ -loshmem
+
+
 
 m.c: $(MEASUREMENTS) extract.pl
 	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=measurements > m.c
+#	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" $(MEASUREMENTS) > m.c
 
 lex.yy.c: lexer.lex
 	flex  lexer.lex

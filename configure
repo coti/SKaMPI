@@ -586,6 +586,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+ENABLE_OPENSHMEM_FALSE
+ENABLE_OPENSHMEM_TRUE
 MPILIBS
 MPICC
 LEXLIB
@@ -680,6 +682,7 @@ ac_user_opts='
 enable_option_checking
 enable_silent_rules
 enable_dependency_tracking
+enable_openshmem
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1312,6 +1315,7 @@ Optional Features:
                           do not reject slow dependency extractors
   --disable-dependency-tracking
                           speeds up one-time build
+  --enable-openshmem      Enable OpenSHMEM operations [default=no]
 
 Some influential environment variables:
   CC          C compiler command
@@ -3987,6 +3991,31 @@ fi
 
 CC="$MPICC"
 
+# Enable OpenSHMEM or not
+ENABLE_OPENSHMEM=0 # default
+# Check whether --enable-openshmem was given.
+if test "${enable_openshmem+set}" = set; then :
+  enableval=$enable_openshmem;   if true; then
+  ENABLE_OPENSHMEM_TRUE=
+  ENABLE_OPENSHMEM_FALSE='#'
+else
+  ENABLE_OPENSHMEM_TRUE='#'
+  ENABLE_OPENSHMEM_FALSE=
+fi
+
+       	  CFLAGS+=" -DSKAMPI_OPENSHMEM "
+else
+    if false; then
+  ENABLE_OPENSHMEM_TRUE=
+  ENABLE_OPENSHMEM_FALSE='#'
+else
+  ENABLE_OPENSHMEM_TRUE='#'
+  ENABLE_OPENSHMEM_FALSE=
+fi
+
+fi
+
+
 # Tells automake to create a Makefile
 # See https://www.gnu.org/software/automake/manual/html_node/Requirements.html
 ac_config_files="$ac_config_files Makefile"
@@ -4160,6 +4189,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_OPENSHMEM_TRUE}" && test -z "${ENABLE_OPENSHMEM_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_OPENSHMEM\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_OPENSHMEM_TRUE}" && test -z "${ENABLE_OPENSHMEM_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_OPENSHMEM\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

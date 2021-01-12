@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <time.h>
 #include <string.h>
 #include "version.h"
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
 
 #include "misc.h"
 #include "output.h"
@@ -87,6 +90,9 @@ int main(int argc, char* argv[])
 
   set_progname(argv[0]);
   MPI_Init(&argc, &argv);
+#ifdef SKAMPI_OPENSHMEM
+  shmem_init();
+#endif
   init_globals();
   init_output();
 
@@ -205,6 +211,9 @@ int main(int argc, char* argv[])
   /*  print_symboltable(); */
   /* print_global_time_differences();  @@ */
   finish_logging();
+#ifdef SKAMPI_OPENSHMEM
+  shmem_finalize();
+#endif
   MPI_Finalize();
   return 0;
 }
