@@ -18,14 +18,10 @@ AC_CONFIG_MACRO_DIR([m4])
 
 # Check for C compiler
 AC_PROG_CC
+AM_PROG_CC_C_O
 # Check for Flex and Bison
 AC_PROG_YACC
 AC_PROG_LEX
-if test "x$LEX" != xflex; then
-   LEX="$SHELL $missing_dir/missing flex"
-   AC_SUBST([LEX_OUTPUT_ROOT], [lex.yy])
-   AC_SUBST([LEXLIB], [''])
-fi
 
 # Check for MPI
 ACX_MPI([], [AC_MSG_ERROR([Cannot find an MPI compiler.])])

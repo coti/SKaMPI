@@ -80,10 +80,11 @@ bin_PROGRAMS = skampi$(EXEEXT)
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/configure $(am__configure_deps) parser.c \
-	$(top_srcdir)/build-aux/depcomp $(top_srcdir)/build-aux/ylwrap \
-	COPYING build-aux/compile build-aux/depcomp \
-	build-aux/install-sh build-aux/missing build-aux/ylwrap \
+	$(top_srcdir)/configure $(am__configure_deps) parser.h \
+	parser.c $(top_srcdir)/build-aux/depcomp \
+	$(top_srcdir)/build-aux/ylwrap COPYING build-aux/compile \
+	build-aux/depcomp build-aux/install-sh build-aux/missing \
+	build-aux/ylwrap $(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -112,7 +113,7 @@ am_skampi_OBJECTS = accounting.$(OBJEXT) autorefine.$(OBJEXT) \
 	main.$(OBJEXT) measurement.$(OBJEXT) mem.$(OBJEXT) \
 	misc.$(OBJEXT) output.$(OBJEXT) print.$(OBJEXT) \
 	symboltable.$(OBJEXT) synchronize.$(OBJEXT) m.$(OBJEXT) \
-	parser.$(OBJEXT) $(am__objects_1)
+	lex.yy.$(OBJEXT) parser.$(OBJEXT) $(am__objects_1)
 skampi_OBJECTS = $(am_skampi_OBJECTS)
 skampi_DEPENDENCIES =
 AM_V_P = $(am__v_P_@AM_V@)
@@ -288,30 +289,23 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I config 
-
-#BUILT_SOURCES = lexer.c parser.c parser.h m.c
-#CLEANFILES = lexer.c parser.c parser.h m.c
-
-#SUBDIRS = measurements
+AM_YFLAGS = -d
+BUILT_SOURCES = lex.yy.c parser.c parser.h m.c
+CLEANFILES = lex.yy.c parser.c parser.h m.c
 MEASUREMENTS = \
 	measurements/bug.c measurements/coll.c measurements/datatypes.c measurements/delayed.c measurements/demo.c measurements/helpers.c measurements/io.c \
 	measurements/localio.c measurements/mmisc.c measurements/node2node.c measurements/onesided.c measurements/pt2pt.c \
 	measurements/openshmem.c
 
-#MEASUREMENTS = \
-#	bug.c coll.c datatypes.c delayed.c demo.c helpers.c io.c \
-#	localio.c mmisc.c node2node.c onesided.c pt2pt.c \
-#	openshmem.c
 skampi_SOURCES = \
 	accounting.c autorefine.c compile.c debug.c exec.c main.c measurement.c mem.c misc.c output.c print.c symboltable.c synchronize.c \
-	m.c \
+	m.c lex.yy.c \
 	parser.y lexer.lex \
 	$(MEASUREMENTS)
 
-
-#lexer.c parser.c 
 skampi_LDADD = -lm @LEXLIB@
-all: all-am
+all: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .o .obj .y
@@ -391,6 +385,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+parser.h: parser.c
+	@if test ! -f $@; then rm -f parser.c; else :; fi
+	@if test ! -f $@; then $(MAKE) $(AM_MAKEFLAGS) parser.c; else :; fi
 measurements/$(am__dirstamp):
 	@$(MKDIR_P) measurements
 	@: > measurements/$(am__dirstamp)
@@ -440,6 +437,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exec.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lex.yy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/m.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/measurement.Po@am__quote@
@@ -699,13 +697,15 @@ distcleancheck: distclean
 	       $(distcleancheck_listfiles) ; \
 	       exit 1; } >&2
 check-am: all-am
-check: check-am
+check: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
+install: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) install-am
 install-exec: install-exec-am
 install-data: install-data-am
 uninstall: uninstall-am
@@ -727,6 +727,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -738,6 +739,8 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-rm -f parser.c
+	-rm -f parser.h
+	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
@@ -810,7 +813,7 @@ ps-am:
 
 uninstall-am: uninstall-binPROGRAMS
 
-.MAKE: install-am install-strip
+.MAKE: all check install install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--refresh check check-am clean \
 	clean-binPROGRAMS clean-cscope clean-generic cscope \
@@ -831,6 +834,9 @@ uninstall-am: uninstall-binPROGRAMS
 
 m.c: $(MEASUREMENTS) extract.pl
 	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=measurements > m.c
+
+lex.yy.c: lexer.lex
+	flex  lexer.lex
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
