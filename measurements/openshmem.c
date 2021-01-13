@@ -100,6 +100,47 @@ double measure_Shmem_Bcast_All( int count, int root ){
 
 // https://www.globus.org/sites/default/files/de_Supinski_HPDC08.pdf
 
+/* This benchmark method is called the `broadcast rounds` benchmark method: each rank 
+   of the communicator / team initiates a broadcast. There is still a possibillity
+   of pipeling, depending on the order used to cycle over the tasks. 
+*/
+
+void init_Shmem_Bcast_All_Rounds( int count ){
+  ;; 
+  size = shmem_n_pes();
+  source = (char*) shmem_malloc( count );
+  target = (char*) shmem_malloc( count );
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+  psync = malloc( SHMEM_BCAST_SYNC_SIZE );
+#endif
+}
+  
+void finalize_Shmem_Bcast_All_Rounds( int count ){
+  shmem_free( source );
+  shmem_free( target );
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+  free( psync );
+#endif
+}
+
+/* TODO not necesarily on SHMEM_TEAM_WORLD */
+
+double measure_Shmem_Bcast_All_Rounds( int count ){
+    double start_time, end_time;
+    int root;
+    
+    start_time = start_synchronization();
+    for( root = 0 ; root < size ; root++ ){
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+      shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+      shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+#endif
+    }
+    end_time = stop_synchronization();
+    return  ( end_time - start_time ) / size;
+}
+
 #pragma weak end_skampi_extensions
 
 #endif // SKAMPI_OPENSHMEM
