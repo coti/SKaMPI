@@ -69,7 +69,7 @@ void init_Shmem_Bcast_All( int count, int root ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
-#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   psync = malloc( SHMEM_BCAST_SYNC_SIZE );
 #endif
 }
@@ -77,7 +77,7 @@ void init_Shmem_Bcast_All( int count, int root ){
 void finalize_Shmem_Bcast_All( int count, int root ){
   shmem_free( source );
   shmem_free( target );
-#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   free( psync );
 #endif
 }
@@ -89,7 +89,7 @@ double measure_Shmem_Bcast_All( int count, int root ){
 
     start_time = start_synchronization();
 
-#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
     shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
 #else
     shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
@@ -110,7 +110,7 @@ void init_Shmem_Bcast_All_Rounds( int count ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
-#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   psync = malloc( SHMEM_BCAST_SYNC_SIZE );
 #endif
 }
@@ -118,7 +118,7 @@ void init_Shmem_Bcast_All_Rounds( int count ){
 void finalize_Shmem_Bcast_All_Rounds( int count ){
   shmem_free( source );
   shmem_free( target );
-#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   free( psync );
 #endif
 }
@@ -156,7 +156,7 @@ void init_Shmem_Bcast_All_SK( int count, int root ){
   target = (char*) shmem_malloc( count );
   ack    = (int*)  shmem_malloc( sizeof( int ) );
   *ack = 0;
-#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   psync = malloc( SHMEM_BCAST_SYNC_SIZE );
 #endif
 }
@@ -165,7 +165,7 @@ void finalize_Shmem_Bcast_All_SK( int count, int root ){
   shmem_free( source );
   shmem_free( target );
   shmem_free( ack );
-#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   free( psync );
 #endif
 }
