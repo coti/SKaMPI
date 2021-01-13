@@ -141,6 +141,139 @@ double measure_Shmem_Bcast_All_Rounds( int count ){
     return  ( end_time - start_time ) / size;
 }
 
+/* This method is described in:
+   https://www.globus.org/sites/default/files/de_Supinski_HPDC08.pdf
+   by Bronis R. de Supinski and Nicholas T. Karonis, published at HPDC 99, 
+   DOI 10.1109/HPDC.1999.805279
+*/
+
+#define M 120  /* The M parameter of the algorithm, "large" */
+int* ack;
+
+void init_Shmem_Bcast_All_SK( int count, int root ){
+  size = shmem_n_pes();
+  source = (char*) shmem_malloc( count );
+  target = (char*) shmem_malloc( count );
+  ack    = (int*)  shmem_malloc( sizeof( int ) );
+  *ack = 0;
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+  psync = malloc( SHMEM_BCAST_SYNC_SIZE );
+#endif
+}
+  
+void finalize_Shmem_Bcast_All_SK( int count, int root ){
+  shmem_free( source );
+  shmem_free( target );
+  shmem_free( ack );
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION < 5
+  free( psync );
+#endif
+}
+
+/* TODO not necesarily on SHMEM_TEAM_WORLD */
+
+double measure_Shmem_Bcast_All_SK( int count, int root ){
+  double start_time, t1, rt1, t2, rt2, mytime;
+  int rank = shmem_my_pe();
+  int i, dst, task;
+
+  /* The algorithm is written with two-sided communications. We are using atomic puts instead. */
+  shmem_fence();
+  start_time = start_synchronization();
+  
+  for( task = 0 ; task < size ; task++ ){
+    if( task != root ) {
+
+      /* First step: one-to-one communications */
+      
+      if( root == rank ){
+	for( i = 0 ; i < M ; i++ ){
+	  shmem_int_atomic_add( ack, 1, task );
+	  while( *ack < 1 ){
+	    /* wait */
+	    usleep( 100 );
+	  }
+	  *ack = 0;
+	}
+      } else {
+	if( task == rank ){
+	  for( i = 0 ; i < M ; i++ ){
+	    while( *ack < 1 ){
+	      /* wait */
+	      usleep( 100 );
+	    }
+	    *ack = 0;
+	    shmem_int_atomic_add( ack, 1, root );
+	  }
+	}
+      }
+      
+      t1 = wtime();
+      rt1 = ( t1 - start_time ) / M;
+      
+      /* Second step: broadcasts, with ack, */
+      /* Assumptions:
+	 - the acknowledgment does not arrive at the root before the root has
+	 finished the broadcast 
+	 - no task j on i's broadcast path delays the next broadcast 
+      */
+      
+      shmem_barrier_all();
+      
+      /* Initial broadcast / ack: assumption consistency check */
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+      shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+      shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+#endif
+      if( root == rank ){
+	while( *ack < 1 ){
+	  /* wait */
+	  usleep( 100 );
+	}
+	*ack = 0;
+      } else {
+	if( task == rank ) {
+	  shmem_int_atomic_add( ack, 1, root );
+	}
+      }
+  
+      /* Mesurements */
+      
+      t1 = wtime();
+      for( i = 0 ; i < M ; i++ ){
+	
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+	shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+	shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+#endif
+	if( root == rank ){
+	  while( *ack < 1 ){
+	    /* wait */
+	    usleep( 100 );
+	  }
+	  *ack = 0;
+	} else {
+	  if( task == rank ) {
+	    shmem_int_atomic_add( ack, 1, root );
+	  }
+	}
+      }
+      t2 = wtime();
+
+      if( rank == task || root == rank ){ /* the root will keep the last time taken */
+	rt2 = (t2 - t1)/M;
+	mytime = t2 - t1/2;
+      }
+    }
+
+  }
+
+  return mytime;
+}
+
+
 #pragma weak end_skampi_extensions
 
 #endif // SKAMPI_OPENSHMEM
