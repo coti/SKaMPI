@@ -12,6 +12,10 @@ set_skampi_buffer( MAXSIZE )
 
 begin measurement "Pingpong_Put_Put_fence"
   for count = 1 to MAXSIZE step *sqrt(2) do
-    measure MPI_COMM_WORLD: Shmem_Pingpong_Put_Put(count, 5)
+    measure comm_pt2pt : Shmem_Pingpong_Put_Put(count, 5)
   od
+end measurement
+
+begin measurement "Shmem_Bcast_All-procs-short"
+      measure comm_pt2pt : Shmem_Bcast_All(256, 0)
 end measurement
