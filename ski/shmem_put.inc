@@ -10,11 +10,15 @@ MAXSIZE = 65536
 
 set_skampi_buffer( MAXSIZE )
 
+## One-sided communications
+
 begin measurement "Pingpong_Put_Put_fence"
   for count = 1 to MAXSIZE step *sqrt(2) do
     measure comm_pt2pt : Shmem_Pingpong_Put_Put(count, 5)
   od
 end measurement
+
+## Broadcast
 
 begin measurement "Shmem_Bcast_All-procs-short"
       measure comm_pt2pt : Shmem_Bcast_All(256, 0)
@@ -27,3 +31,18 @@ end measurement
 begin measurement "Shmem_Bcast_All_SK-procs-short"
       measure comm_pt2pt : Shmem_Bcast_All_SK(256, 0)
 end measurement
+
+## Reduce
+
+begin measurement "Shmem_Reduce_And_All-procs-short"
+      measure comm_pt2pt : Shmem_Reduce_And_All(256, 0)
+end measurement
+
+begin measurement "Shmem_Reduce_And_All_Rounds-procs-short"
+      measure comm_pt2pt : Shmem_Reduce_And_All_Rounds(256)
+end measurement
+
+begin measurement "Shmem_Reduce_And_All_SK-procs-short"
+      measure comm_pt2pt : Shmem_Reduce_And_All_SK(256,0)
+end measurement
+
