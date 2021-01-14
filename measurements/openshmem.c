@@ -199,20 +199,12 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
       if( root == rank ){
 	for( i = 0 ; i < M ; i++ ){
 	  shmem_int_atomic_add( ack, 1, task );
-	  while( *ack < 1 ){
-	    /* wait */
-	    usleep( 100 );
-	  }
-	  *ack = 0;
+	  wait_for_ack( 1 );
 	}
       } else {
 	if( task == rank ){
 	  for( i = 0 ; i < M ; i++ ){
-	    while( *ack < 1 ){
-	      /* wait */
-	      usleep( 100 );
-	    }
-	    *ack = 0;
+	    wait_for_ack( 1 );
 	    shmem_int_atomic_add( ack, 1, root );
 	  }
 	}
@@ -237,11 +229,7 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
       shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
       if( root == rank ){
-	while( *ack < 1 ){
-	  /* wait */
-	  usleep( 100 );
-	}
-	*ack = 0;
+	wait_for_ack( 1 );
       } else {
 	if( task == rank ) {
 	  shmem_int_atomic_add( ack, 1, root );
@@ -259,11 +247,7 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
 	shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
 	if( root == rank ){
-	  while( *ack < 1 ){
-	    /* wait */
-	    usleep( 100 );
-	  }
-	  *ack = 0;
+	  wait_for_ack( 1 );
 	} else {
 	  if( task == rank ) {
 	    shmem_int_atomic_add( ack, 1, root );
