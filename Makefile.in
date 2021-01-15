@@ -77,6 +77,8 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = skampi$(EXEEXT)
+@ENABLE_OPENSHMEM_TRUE@am__append_1 = -loshmem
+@ENABLE_PAPI_TRUE@am__append_2 = -lpapi
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -115,7 +117,8 @@ am_skampi_OBJECTS = accounting.$(OBJEXT) autorefine.$(OBJEXT) \
 	symboltable.$(OBJEXT) synchronize.$(OBJEXT) m.$(OBJEXT) \
 	lex.yy.$(OBJEXT) parser.$(OBJEXT) $(am__objects_1)
 skampi_OBJECTS = $(am_skampi_OBJECTS)
-skampi_DEPENDENCIES =
+am__DEPENDENCIES_1 =
+skampi_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -303,7 +306,7 @@ skampi_SOURCES = \
 	parser.y lexer.lex \
 	$(MEASUREMENTS)
 
-skampi_LDADD = -lm @LEXLIB@ -loshmem
+skampi_LDADD = -lm @LEXLIB@ $(am__append_1) $(am__append_2)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -834,7 +837,6 @@ uninstall-am: uninstall-binPROGRAMS
 
 m.c: $(MEASUREMENTS) extract.pl
 	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=measurements > m.c
-#	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" $(MEASUREMENTS) > m.c
 
 lex.yy.c: lexer.lex
 	flex  lexer.lex

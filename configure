@@ -586,6 +586,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+ENABLE_PAPI_FALSE
+ENABLE_PAPI_TRUE
 ENABLE_OPENSHMEM_FALSE
 ENABLE_OPENSHMEM_TRUE
 MPILIBS
@@ -683,6 +685,7 @@ enable_option_checking
 enable_silent_rules
 enable_dependency_tracking
 enable_openshmem
+enable_papi
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1316,6 +1319,7 @@ Optional Features:
   --disable-dependency-tracking
                           speeds up one-time build
   --enable-openshmem      Enable OpenSHMEM operations [default=no]
+  --enable-papi           Use PAPI for measurements [default=no]
 
 Some influential environment variables:
   CC          C compiler command
@@ -4016,8 +4020,32 @@ fi
 fi
 
 
+# use PAPI or not
+ENABLE_PAPI=0 # default
+# Check whether --enable-papi was given.
+if test "${enable_papi+set}" = set; then :
+  enableval=$enable_papi;   if true; then
+  ENABLE_PAPI_TRUE=
+  ENABLE_PAPI_FALSE='#'
+else
+  ENABLE_PAPI_TRUE='#'
+  ENABLE_PAPI_FALSE=
+fi
+
+       	  CFLAGS+=" -DSKAMPI_USE_PAPI "
+else
+    if false; then
+  ENABLE_PAPI_TRUE=
+  ENABLE_PAPI_FALSE='#'
+else
+  ENABLE_PAPI_TRUE='#'
+  ENABLE_PAPI_FALSE=
+fi
+
+fi
+
+
 # Tells automake to create a Makefile
-# See https://www.gnu.org/software/automake/manual/html_node/Requirements.html
 ac_config_files="$ac_config_files Makefile"
 
 
@@ -4197,6 +4225,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_OPENSHMEM_TRUE}" && test -z "${ENABLE_OPENSHMEM_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_OPENSHMEM\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_PAPI_TRUE}" && test -z "${ENABLE_PAPI_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_PAPI\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_PAPI_TRUE}" && test -z "${ENABLE_PAPI_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_PAPI\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

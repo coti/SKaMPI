@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation
@@ -29,6 +32,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include "version.h"
 #ifdef SKAMPI_OPENSHMEM
 #include <shmem.h>
+#endif
+#if SKAMPI_USE_PAPI
+#include <papi.h>
 #endif
 
 #include "misc.h"
@@ -92,6 +98,9 @@ int main(int argc, char* argv[])
   MPI_Init(&argc, &argv);
 #ifdef SKAMPI_OPENSHMEM
   shmem_init();
+#endif
+#if SKAMPI_USE_PAPI
+  PAPI_library_init( PAPI_VER_CURRENT );
 #endif
   init_globals();
   init_output();

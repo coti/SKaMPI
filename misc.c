@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation
@@ -22,6 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#if SKAMPI_USE_PAPI
+#include <papi.h>
+#endif
 
 #include "mpiversiontest.h"
 #include "misc.h"
@@ -237,7 +243,11 @@ bool lrootproc(void) { return get_measurement_rank() == 0; }
 double wtime(void)
 {
   /*         return MPI_Wtime() + get_my_global_rank()*1.0; */
-           return MPI_Wtime();
+#if SKAMPI_USE_PAPI
+  return PAPI_get_real_usec();
+#else
+  return MPI_Wtime();
+#endif
 }
 
 

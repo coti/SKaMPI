@@ -35,8 +35,15 @@ AC_ARG_ENABLE([openshmem],
        	  CFLAGS+=" -DSKAMPI_OPENSHMEM "],
 	[ AM_CONDITIONAL(ENABLE_OPENSHMEM, false) ] )
 
+# use PAPI or not
+ENABLE_PAPI=0 # default
+AC_ARG_ENABLE([papi],
+	AS_HELP_STRING([--enable-papi], [Use PAPI for measurements [default=no]]),
+	[ AM_CONDITIONAL(ENABLE_PAPI, true)
+       	  CFLAGS+=" -DSKAMPI_USE_PAPI "],
+	[ AM_CONDITIONAL(ENABLE_PAPI, false) ] )
+
 # Tells automake to create a Makefile
-# See https://www.gnu.org/software/automake/manual/html_node/Requirements.html
 AC_CONFIG_FILES([Makefile])
 
 # Generate the output
