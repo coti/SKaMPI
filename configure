@@ -686,6 +686,7 @@ enable_silent_rules
 enable_dependency_tracking
 enable_openshmem
 enable_papi
+with_papi
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1320,6 +1321,11 @@ Optional Features:
                           speeds up one-time build
   --enable-openshmem      Enable OpenSHMEM operations [default=no]
   --enable-papi           Use PAPI for measurements [default=no]
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-papi=FULLPATH    set full path to your PAPI installation
 
 Some influential environment variables:
   CC          C compiler command
@@ -4020,7 +4026,7 @@ fi
 fi
 
 
-# use PAPI or not
+# Use PAPI or not
 ENABLE_PAPI=0 # default
 # Check whether --enable-papi was given.
 if test "${enable_papi+set}" = set; then :
@@ -4044,6 +4050,19 @@ fi
 
 fi
 
+
+# Check whether --with-papi was given.
+if test "${with_papi+set}" = set; then :
+  withval=$with_papi; PAPIPATH="$withval"
+
+fi
+
+if test -n "$PAPIPATH"; then
+       { $as_echo "$as_me:${as_lineno-$LINENO}: checking user-supplied PAPI installation" >&5
+$as_echo_n "checking user-supplied PAPI installation... " >&6; }
+       CFLAGS="-I${PAPIPATH}/include ${CFLAGS}"
+       LDFLAGS="-L${PAPIPATH}/lib ${LDFLAGS}"
+fi
 
 # Tells automake to create a Makefile
 ac_config_files="$ac_config_files Makefile"
