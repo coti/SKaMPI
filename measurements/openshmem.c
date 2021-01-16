@@ -30,9 +30,9 @@ char* psync;
 char* source;
 char* target;
 char* pwrk;
+shmem_ctx_t context;
 
 /*---------------------------------------------------------------------------*/
-
 void init_Shmem_Pingpong_Put_Put( int count, int iterations ) {
     /*onesided_winsize = get_extent(count, datatype);
 
@@ -79,14 +79,122 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
 
 /*---------------------------------------------------------------------------*/
 
+void init_Shmem_Atomic_Fetch(){
+  ack = shmem_malloc( sizeof( int ));
+  *ack = get_measurement_rank();
+  init_synchronization();
+}
+
+double measure_Shmem_Atomic_Fetch(){
+  double start_time = 1.0, end_time = 0.0, mytime;
+  int r, mod;
+  mod = get_measurement_rank() %2;
+
+  start_time = start_synchronization();
+
+  /* Odd-numbered processes fetch from their -1 neighbor */
+  if  ( mod == 1 ){
+    start_time = wtime();
+    r = shmem_int_atomic_fetch( ack, get_measurement_rank() - 1 );
+    end_time = wtime();
+  } 
+  if  ( mod == 1 ){
+    mytime = end_time - start_time;
+  }
+  shmem_barrier_all();
+
+  /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+  if  ( mod == 0 && get_measurement_rank() < get_measurement_size() - 1 ){
+    start_time = wtime();
+    r = shmem_int_atomic_fetch( ack, get_measurement_rank() + 1 );
+    end_time = wtime();
+  } 
+  if  ( mod ==  0 && get_measurement_rank() < get_measurement_size() - 1 ){
+    mytime = end_time - start_time;
+  }
+  shmem_barrier_all();
+
+  /* Otherwise, the last process fetches from 0 */
+  if( get_measurement_size() % 2 > 0 ){
+    if  ( get_measurement_rank() == get_measurement_size() - 1 ){
+      start_time = wtime();
+      r = shmem_int_atomic_fetch( ack, 0 );
+      end_time = wtime();
+    } 
+    shmem_barrier_all();
+    if  ( get_measurement_rank() == get_measurement_size() - 1 ){
+      mytime = end_time - start_time;
+    }
+  }
+  end_time = stop_synchronization();
+  
+  return mytime;
+}
+
+void finalize_Shmem_Atomic_Fetch(){
+  shmem_free( ack );
+}
+
+void init_Shmem_Ctx_Atomic_Fetch(){
+  ack = shmem_malloc( sizeof( int ));
+  shmem_ctx_create( SHMEM_CTX_SERIALIZED, &context );
+  init_synchronization();
+}
+
+double measure_Shmem_Ctx_Atomic_Fetch(){
+  double start_time = 1.0, end_time = 0.0, mytime;
+  int r, mod;
+  mod = get_measurement_rank() %2;
+
+  /* Odd-numbered processes fetch from their -1 neighbor */
+  start_time = start_synchronization();
+  if  ( mod == 1 ){
+    start_time = wtime();
+    r = shmem_ctx_int_atomic_fetch( context, ack, get_measurement_rank() - 1 );
+    end_time = wtime();
+    mytime = end_time - start_time;
+  }
+  shmem_barrier_all();
+
+  /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+  if  ( mod == 0 && get_measurement_rank() < get_measurement_size() - 1 ){
+    start_time = wtime();
+    r = shmem_ctx_int_atomic_fetch( context, ack, get_measurement_rank() + 1 );
+    end_time = wtime();
+    mytime = end_time - start_time;
+  }
+  shmem_barrier_all();
+
+  /* Otherwise, the last process fetches from 0 */
+  if( get_measurement_size() % 2 > 0 ){
+    if  ( get_measurement_rank() == get_measurement_size() - 1 ){
+      start_time = wtime();
+      r = shmem_ctx_int_atomic_fetch( context, ack, 0 );
+      end_time = wtime();
+      mytime = end_time - start_time;
+    }
+    shmem_barrier_all();
+  }
+  end_time = stop_synchronization();
+
+  return mytime;
+}
+
+void finalize_Shmem_Ctx_Atomic_Fetch(){
+  shmem_free( ack );
+  shmem_ctx_destroy( context );
+}
+
+/*---------------------------------------------------------------------------*/
+
 void init_Shmem_Bcast_All( int count, int root ){
-  ;; 
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   psync = malloc( SHMEM_BCAST_SYNC_SIZE );
 #endif
+  init_synchronization();
 }
   
 void finalize_Shmem_Bcast_All( int count, int root ){
@@ -119,13 +227,13 @@ double measure_Shmem_Bcast_All( int count, int root ){
 */
 
 void init_Shmem_Bcast_All_Rounds( int count ){
-  ;; 
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   psync = malloc( SHMEM_BCAST_SYNC_SIZE );
 #endif
+  init_synchronization();
 }
   
 void finalize_Shmem_Bcast_All_Rounds( int count ){
@@ -169,6 +277,7 @@ void init_Shmem_Bcast_All_SK( int count, int root ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
   psync = malloc( SHMEM_BCAST_SYNC_SIZE );
 #endif
+  init_synchronization();
 }
   
 void finalize_Shmem_Bcast_All_SK( int count, int root ){
@@ -189,81 +298,82 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
 
   /* The algorithm is written with two-sided communications. We are using atomic puts instead. */
   shmem_fence();
-  start_time = start_synchronization();
-  
+  shmem_barrier_all();
+
   for( task = 0 ; task < size ; task++ ){
-    if( task != root ) {
-
-      /* First step: one-to-one communications */
-      
-      if( root == rank ){
-	for( i = 0 ; i < M ; i++ ){
-	  shmem_int_atomic_add( ack, 1, task );
-	  wait_for_ack( 1 );
-	}
-      } else {
-	if( task == rank ){
-	  for( i = 0 ; i < M ; i++ ){
-	    wait_for_ack( 1 );
-	    shmem_int_atomic_add( ack, 1, root );
-	  }
-	}
-      }
-      
-      t1 = wtime();
-      rt1 = ( t1 - start_time ) / M;
-      
-      /* Second step: broadcasts, with ack. */
-      /* Assumptions:
-	 - the acknowledgment does not arrive at the root before the root has
-	 finished the broadcast 
-	 - no task j on i's broadcast path delays the next broadcast 
-      */
-      
-      shmem_barrier_all();
-      
-      /* Initial broadcast / ack: assumption consistency check */
+      if( task != root ) {
+          
+          /* First step: one-to-one communications */
+          
+          start_time = wtime();
+          if( root == rank ){
+              for( i = 0 ; i < M ; i++ ){
+                  shmem_int_atomic_add( ack, 1, task );
+                  wait_for_ack( 1 );
+              }
+          } else {
+              if( task == rank ){
+                  for( i = 0 ; i < M ; i++ ){
+                      wait_for_ack( 1 );
+                      shmem_int_atomic_add( ack, 1, root );
+                  }
+              }
+          }
+          
+          t1 = wtime();
+          rt1 = ( t1 - start_time ) / M;
+          
+          /* Second step: broadcasts, with ack. */
+          /* Assumptions:
+             - the acknowledgment does not arrive at the root before the root has
+             finished the broadcast 
+             - no task j on i's broadcast path delays the next broadcast 
+          */
+          
+          shmem_barrier_all();
+          
+          /* Initial broadcast / ack: assumption consistency check */
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-      shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+          shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
 #else
-      shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+          shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
-      if( root == rank ){
-	wait_for_ack( 1 );
-      } else {
-	if( task == rank ) {
-	  shmem_int_atomic_add( ack, 1, root );
-	}
-      }
-  
-      /* Mesurements */
-      
-      t1 = wtime();
-      for( i = 0 ; i < M ; i++ ){
-	
+          if( root == rank ){
+              wait_for_ack( 1 );
+          } else {
+              if( task == rank ) {
+                  shmem_int_atomic_add( ack, 1, root );
+              }
+          }
+          
+          /* Mesurements */
+          
+          t1 = wtime();
+          for( i = 0 ; i < M ; i++ ){
+              
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-	shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+              shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
 #else
-	shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+              shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
-	if( root == rank ){
-	  wait_for_ack( 1 );
-	} else {
-	  if( task == rank ) {
-	    shmem_int_atomic_add( ack, 1, root );
-	  }
-	}
+              if( root == rank ){
+                  wait_for_ack( 1 );
+              } else {
+                  if( task == rank ) {
+                      shmem_int_atomic_add( ack, 1, root );
+                  }
+              }
+          }
+          t2 = wtime();
+          
+          if( rank == task || root == rank ){ /* the root will keep the last time taken */
+              rt2 = (t2 - t1)/M;
+              mytime = rt2 - rt1/2;
+          }
       }
-      t2 = wtime();
-
-      if( rank == task || root == rank ){ /* the root will keep the last time taken */
-	rt2 = (t2 - t1)/M;
-	mytime = t2 - t1/2;
-      }
-    }
-
+      
   }
-
+  
   return mytime;
 }
 
@@ -278,6 +388,7 @@ void init_Shmem_Reduce_And_All( int count, int root ){
   psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
   pwrk  = (char*) malloc( max(count/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) );
 #endif
+  init_synchronization();
 }
   
 void finalize_Shmem_Reduce_And_All( int count, int root ){
@@ -315,6 +426,7 @@ void init_Shmem_Reduce_And_All_Rounds( int count ){
   psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
   pwrk  = (char*) malloc( max(count/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) );
 #endif
+  init_synchronization();
 }
   
 void finalize_Shmem_Reduce_And_All_Rounds( int count ){
@@ -358,6 +470,7 @@ void init_Shmem_Reduce_And_All_SK( int count, int root ){
   psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
   pwrk  = (char*) malloc( max(count/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) );
 #endif
+  init_synchronization();
 }
 
 void finalize_Shmem_Reduce_And_All_SK( int count, int root ){
@@ -378,11 +491,13 @@ double measure_Shmem_Reduce_And_All_SK( int count, int root ){
 
   /* The algorithm is written with two-sided communications. We are using atomic puts instead. */
   shmem_fence();
-  start_time = start_synchronization();
-  
+  shmem_barrier_all();
+  //start_time = start_synchronization();
+
   for( task = 0 ; task < size ; task++ ){
     if( task != root ) {
-      
+
+        start_time = wtime();
       /* First step: one-to-one communications */
       
       if( root == rank ){
@@ -442,16 +557,93 @@ double measure_Shmem_Reduce_And_All_SK( int count, int root ){
       
       if( rank == task || root == rank ){ /* the root will keep the last time taken */
 	rt2 = (t2 - t1)/M;
-	mytime = t2 - t1/2;
+	mytime = rt2 - rt1/2;
       }
     }
 
   }
 
   return mytime;
-
 }
 
+/*---------------------------------------------------------------------------*/
+/* We cannot pass the options directly, because it would require modifying the parser
+   in order to accept these values. */
+
+void tini_Shmem_Ctx_Create(){
+  init_synchronization();
+}
+
+void init_Shmem_Ctx_Create_Serialized(){
+  tini_Shmem_Ctx_Create();
+}
+void init_Shmem_Ctx_Create_Private(){
+  tini_Shmem_Ctx_Create();
+}
+void init_Shmem_Ctx_Create_Nostore(){
+  tini_Shmem_Ctx_Create();
+}
+
+double erusaem_Shmem_Ctx_Create( long options ){
+  double start_time = 1.0, end_time = 0.0;
+  
+  start_time = start_synchronization();
+  shmem_ctx_create( options, &context );
+  end_time = stop_synchronization();
+
+  shmem_ctx_destroy( context );
+  return end_time - start_time;
+}
+
+double measure_Shmem_Ctx_Create_Serialized(){
+  return erusaem_Shmem_Ctx_Create( SHMEM_CTX_SERIALIZED );
+}
+double measure_Shmem_Ctx_Create_Private(){
+  return erusaem_Shmem_Ctx_Create( SHMEM_CTX_PRIVATE );
+}
+double measure_Shmem_Ctx_Create_Nostore(){
+  return erusaem_Shmem_Ctx_Create( SHMEM_CTX_NOSTORE );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void tini_Shmem_Ctx_Destroy(){
+  init_synchronization();
+}
+
+void init_Shmem_Ctx_Destroy_Serialized(){
+  tini_Shmem_Ctx_Destroy();
+}
+void init_Shmem_Ctx_Destroy_Private(){
+  tini_Shmem_Ctx_Destroy();
+}
+void init_Shmem_Ctx_Destroy_Nostore(){
+  tini_Shmem_Ctx_Destroy();
+}
+
+double erusaem_Shmem_Ctx_Destroy( long options ){
+  double start_time = 1.0, end_time = 0.0;
+
+  shmem_ctx_create( options, &context );
+
+  start_time = start_synchronization();
+  shmem_ctx_destroy( context );
+  end_time = stop_synchronization();
+  
+  return end_time - start_time;
+}
+
+double measure_Shmem_Ctx_Destroy_Serialized(){
+  return erusaem_Shmem_Ctx_Destroy( SHMEM_CTX_SERIALIZED );
+}
+double measure_Shmem_Ctx_Destroy_Private(){
+  return erusaem_Shmem_Ctx_Destroy( SHMEM_CTX_PRIVATE );
+}
+double measure_Shmem_Ctx_Destroy_Nostore(){
+  return erusaem_Shmem_Ctx_Destroy( SHMEM_CTX_NOSTORE );
+}
+
+/*---------------------------------------------------------------------------*/
 
 #pragma weak end_skampi_extensions
 

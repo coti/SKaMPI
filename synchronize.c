@@ -210,6 +210,12 @@ void determine_time_differences(void)
   int i;
   double *tmp_tds;
   double start_time, finish_time;
+  double mult;
+#ifdef SKAMPI_USE_PAPI
+    mult = 1.0;
+#else
+    mult = 1.0e6;
+#endif   
 
   if( lrootproc() ) 
     start_time = acc_start_sync();
@@ -232,11 +238,11 @@ void determine_time_differences(void)
 
   if( get_measurement_rank() != 0 ) {
     logging(DBG_TIMEDIFF, "tds[%d] = %9.1f us\n", 
-	    get_global_rank(0), tds[get_global_rank(0)]*1.0e6);
+	    get_global_rank(0), tds[get_global_rank(0)]*mult);
     for( i = 1; i < get_measurement_size(); i++) {
       tds[get_global_rank(i)] = tmp_tds[i] + tds[get_global_rank(0)];
       logging(DBG_TIMEDIFF, "tds[%d] = %9.1f us\n", 
-	      get_global_rank(i), tds[get_global_rank(i)]*1.0e6);
+	      get_global_rank(i), tds[get_global_rank(i)]*mult);
     }
   } 
   free(tmp_tds);

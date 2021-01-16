@@ -108,6 +108,12 @@ static double final_result;
 static void update_std_error(int a, int n)
 {
   int i, p;
+  double mult;
+#ifdef SKAMPI_USE_PAPI
+    mult = 1.0;
+#else
+    mult = 1.0e6;
+#endif   
 
   for( i = a; i < n; i++) {
     max_results[i] = 0.0;
@@ -121,7 +127,7 @@ static void update_std_error(int a, int n)
   mean_value = sum_of_results / n;
   std_error = sqrt( fabs( sum_of_squares - (fsqr(sum_of_results)/n)) /
 		    (n*(n-1))  );
-  logging(DBG_MEAS, "new std_error = %9.1f\n", std_error*1.0e6);
+  logging(DBG_MEAS, "new std_error = %9.1f\n", std_error*mult);
 }
 
 #if 0
@@ -244,7 +250,14 @@ double should_wait_till(int counter, double interval, double offset)
 
 static double normalize_time(double t)
 {
-  return (t - start_batch + tds[get_global_rank(0)])*1.0e6;
+  double mult;
+#ifdef SKAMPI_USE_PAPI
+    mult = 1.0;
+#else
+    mult = 1.0e6;
+#endif   
+    
+  return (t - start_batch + tds[get_global_rank(0)])*mult;
 }
 
 void set_synchronization(enum sync_type s)
@@ -254,13 +267,19 @@ void set_synchronization(enum sync_type s)
 
 void init_synchronization(void)
 {
+  double mult;
+#ifdef SKAMPI_USE_PAPI
+    mult = 1.0;
+#else
+    mult = 1.0e6;
+#endif   
   current_synchronization = form_of_synchronization;
   max_counter = First_max_counter;
   interval = First_interval;
   first_measurement_run = True;
 
   logging(DBG_SYNC, "starting with max_counter = %d interval = %9.1f\n", 
-	 max_counter, interval*1.0e6);
+	 max_counter, interval*mult);
 
   if( current_synchronization == SYNC_REAL) {
     if( ! mpi_wtime_is_global ) determine_time_differences();
@@ -272,6 +291,12 @@ void init_synchronization(void)
 
 double start_synchronization(void)
 {
+  double mult;
+#ifdef SKAMPI_USE_PAPI
+    mult = 1.0;
+#else
+    mult = 1.0e6;
+#endif   
   switch( current_synchronization ) {
   case SYNC_BARRIER:
     MPI_Barrier(get_measurement_comm());
@@ -279,7 +304,7 @@ double start_synchronization(void)
     break;
   case SYNC_REAL:
     logging(DBG_SYNC, "start = %9.1f ", normalize_time(wtime()));
-    logging(DBG_SYNC, " -> %9.1f ", (counter+1)*interval*1.0e6 );
+    logging(DBG_SYNC, " -> %9.1f ", (counter+1)*interval*mult );
 
     if( !wait_till(should_wait_till(counter, interval, -tds[get_global_rank(0)]), 
 		   &start_sync) )
@@ -358,6 +383,12 @@ static int get_number_flawed_measurements(void)
 static void update_batch_params(void)
 {
   int longest_run, flawed_measurements;
+  double mult;
+#ifdef SKAMPI_USE_PAPI
+    mult = 1.0;
+#else
+    mult = 1.0e6;
+#endif   
 
   if( current_synchronization == SYNC_REAL ) {
     
@@ -376,7 +407,7 @@ static void update_batch_params(void)
       max_counter = imax2(max_counter/2, First_max_counter);
     }
     logging(DBG_SYNC, "flawed_m = %d longest_run = %d max_counter = %d interval = %9.1f\n", 
-	    flawed_measurements, longest_run, max_counter, interval*1.0e6);
+	    flawed_measurements, longest_run, max_counter, interval*mult);
 
   } else {
     max_counter = imax2(4, min_repetitions); 
@@ -399,7 +430,13 @@ static void measurement_loop(struct term *t)
   int previous_max_counter;
   bool stop;
   double *quantiles;
-  
+  double mult;
+#ifdef SKAMPI_USE_PAPI
+    mult = 1.0;
+#else
+    mult = 1.0e6;
+#endif   
+
   int *recv_counts = NULL;
   int *recv_displs = NULL;
 
@@ -445,7 +482,7 @@ static void measurement_loop(struct term *t)
       check_buffer();
       t->call_fp(&spent_time, meas_params);
       assert( spent_time.type == TYPE_DOUBLE );
-      logging(DBG_MEAS, "spent_time = %9.1f\n", spent_time.u.doublev*1.0e6);
+      logging(DBG_MEAS, "spent_time = %9.1f\n", spent_time.u.doublev*mult);
       local_results[result_index] = spent_time.u.doublev;
       result_index++;
     }
@@ -454,7 +491,7 @@ static void measurement_loop(struct term *t)
     DEBUG(DBG_MEAS, 
     {
       for( i = start_not_yet_gathered_results; i < result_index; i++) 
-	logging(DBG_MEAS, "local_results[%d] = %9.1f\n", i, local_results[i]*1.0e6);
+	logging(DBG_MEAS, "local_results[%d] = %9.1f\n", i, local_results[i]*mult);
     });  
 
     if( lrootproc() ) {
@@ -480,9 +517,9 @@ static void measurement_loop(struct term *t)
     if( lrootproc() ) { /* overwrite invalid results */ 
 
       for( i = start_not_yet_gathered_results; i < result_index; i++ ) {
-	logging(DBG_MEAS, "all_results[%d] = [%9.1f", i, all_results[0*max_rep_hard_limit + i]*1.0e6);
+	logging(DBG_MEAS, "all_results[%d] = [%9.1f", i, all_results[0*max_rep_hard_limit + i]*mult);
 	for( p = 1; p < get_measurement_size(); p++)
-	  logging(DBG_MEAS, " %9.1f", all_results[p*max_rep_hard_limit + i]*1.0e6);
+        logging(DBG_MEAS, " %9.1f", all_results[p*max_rep_hard_limit + i]*mult);
 	logging(DBG_MEAS, "]\n"); 
       }
 
@@ -538,9 +575,9 @@ static void measurement_loop(struct term *t)
       DEBUG(DBG_MEAS,
       {
         for( i = start_not_yet_gathered_results; i < result_index; i++ ) {
-          logging(DBG_MEAS, "all_results[%d] = [%9.1f", i, all_results[0*max_rep_hard_limit +i]*1.0e6);
+          logging(DBG_MEAS, "all_results[%d] = [%9.1f", i, all_results[0*max_rep_hard_limit +i]*mult);
           for( p = 1; p < get_measurement_size(); p++)
-            logging(DBG_MEAS, " %9.1f", all_results[p*max_rep_hard_limit + i]*1.0e6);
+            logging(DBG_MEAS, " %9.1f", all_results[p*max_rep_hard_limit + i]*mult);
           logging(DBG_MEAS, "]\n");
         }
       });
@@ -585,13 +622,13 @@ static void measurement_loop(struct term *t)
       print_output(" ");
     }
     print_output("%8d %9.1f %9.1f %8d", get_reported_message_size(), 
-		 final_result*1.0e6, std_error*1.0e6, result_index);
+		 final_result*mult, std_error*mult, result_index);
     
     if ( max_nr_node_times > 0 ) {
       if ( get_measurement_size() <= max_nr_node_times ) {   
         for( i = 0; i < get_measurement_size(); i++) {
           if( final_results[i] >= 0.0 ) 
-            print_output(" %9.1f", final_results[i]*1.0e6);
+            print_output(" %9.1f", final_results[i]*mult);
           else
             print_output("    ---   ");
         }
@@ -599,7 +636,7 @@ static void measurement_loop(struct term *t)
         quantiles = extract_quantiles();
         for ( i = 0; i < max_nr_node_times; i++) {
           if ( quantiles[i] >= 0.0 ) 
-            print_output(" %9.1f", quantiles[i]*1.0e6);
+            print_output(" %9.1f", quantiles[i]*mult);
           else
             print_output("    ---   ");
         }
