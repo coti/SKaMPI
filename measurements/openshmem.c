@@ -645,6 +645,34 @@ double measure_Shmem_Ctx_Destroy_Nostore(){
 
 /*---------------------------------------------------------------------------*/
 
+double measure_Shmem_Malloc( int size ){
+  double start_time = 1.0, end_time = 0.0;
+  char* ptr;
+
+  start_time = start_synchronization();
+  ptr = (char*)shmem_malloc( size );
+  end_time = stop_synchronization();
+
+  shfree( ptr );
+  return end_time - start_time;
+}
+
+/*---------------------------------------------------------------------------*/
+
+double measure_Shmem_Free(){
+  double start_time = 1.0, end_time = 0.0;
+  char* ptr;
+  ptr = (char*)shmem_malloc( size );
+
+  start_time = start_synchronization();
+  shfree( ptr );
+  end_time = stop_synchronization();
+
+  return end_time - start_time;
+}
+
+/*---------------------------------------------------------------------------*/
+
 #pragma weak end_skampi_extensions
 
 #endif // SKAMPI_OPENSHMEM
