@@ -15,3 +15,4 @@ set_skampi_buffer( MAXSIZE )
 #@include "shmem_ctx.inc"
 #@include "shmem_atomic.inc"
 @include "shmem_alloc.inc"
+@include "shmem_lock.inc"
