@@ -881,11 +881,62 @@ double measure_Shmem_Lock_Test_Busy_Round(){
 
 }
 
-/* A random process holds the lock and another one test it. */
+/*---------------------------------------------------------------------------*/
 
-double measure_Shmem_Lock_Test_Busy_Random(){
+void init_Shmem_Set_Lock(){
+    init_synchronization();
+}
 
-//  rand() / (RAND_MAX / (N + 1) + 1)
+double measure_Shmem_Set_Lock(){
+    double start_time = 1.0, end_time = 0.0, t1 = 1.0, t2 = 0.0;
+    int rank, size, i;
+    static long lock = 0;
+    start_time = start_synchronization();
+    
+    rank = shmem_my_pe();
+    size = shmem_n_pes();
+
+    for( i = 0 ; i < size ; i++ ) {
+        shmem_barrier_all();
+        if( rank == i ){
+            t1 = wtime();
+            shmem_set_lock( &lock );
+            t2 = wtime();
+            shmem_clear_lock( &lock );
+        }
+    }
+    end_time = stop_synchronization();
+
+    return t2 - t1;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Clear_Lock( ){
+    init_synchronization();
+}
+
+double measure_Shmem_Clear_Lock(){
+    double start_time = 1.0, end_time = 0.0, t1 = 1.0, t2 = 0.0;
+    int rank, size, i;
+    static long lock = 0;
+    start_time = start_synchronization();
+    
+    rank = shmem_my_pe();
+    size = shmem_n_pes();
+
+    for( i = 0 ; i < size ; i++ ) {
+        shmem_barrier_all();
+        if( rank == i ){
+            shmem_set_lock( &lock );
+            t1 = wtime();
+            shmem_clear_lock( &lock );
+            t2 = wtime();
+        }
+    }
+    end_time = stop_synchronization();
+
+    return t2 - t1;
 }
 
 /*---------------------------------------------------------------------------*/
