@@ -34,6 +34,9 @@ shmem_ctx_t context;
 static long mylock = 0;
 
 /*---------------------------------------------------------------------------*/
+/*                    Point-to-point routines                                */
+/*---------------------------------------------------------------------------*/
+
 void init_Shmem_Pingpong_Put_Put( int count, int iterations ) {
     /*onesided_winsize = get_extent(count, datatype);
 
@@ -59,9 +62,9 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
   }
 
   sym = shmem_malloc( count );
-  shmem_fence();
   start_time = start_synchronization();
 
+  shmem_fence();
   for (i=0; i<iterations; i++) {
       if (get_measurement_rank() == 0){
           shmem_putmem( sym, get_send_buffer(), count, 1 );
@@ -78,6 +81,51 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
   return (end_time - start_time)/iterations;
 }
 
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Put_Fence_Bidirectional( int count, int iterations ) {
+    /*onesided_winsize = get_extent(count, datatype);
+
+  set_send_buffer_usage(onesided_winsize);
+  set_reported_message_size(onesided_winsize);
+
+  set_recv_buffer_usage(onesided_winsize);*/
+
+  init_synchronization();
+}
+
+
+double measure_Shmem_Put_Fence_Bidirectional( int count, int iterations ){
+  double start_time = 1.0, end_time = 0.0;
+  char* sym;
+  int i, rank, size;
+  rank = shmem_my_pe();
+  size = shmem_n_pes();
+
+  if (iterations<0) {
+    return -1.0;   /* indicate that this definitely is an error */
+  }
+  if (iterations==0) {
+    return 0.0;    /* avoid division by zero at the end */
+  }
+
+  sym = shmem_malloc( count );
+  start_time = start_synchronization();
+
+  shmem_fence();
+  for (i=0; i<iterations; i++) {
+      shmem_putmem( sym, get_send_buffer(), count, (rank + 1 ) % size );
+      shmem_fence();
+  }
+
+
+  end_time = stop_synchronization();
+  shmem_free( sym );
+  return (end_time - start_time)/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+/*                          Atomic routines                                  */
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Atomic_Fetch(){
@@ -186,6 +234,8 @@ void finalize_Shmem_Ctx_Atomic_Fetch(){
   shmem_ctx_destroy( context );
 }
 
+/*---------------------------------------------------------------------------*/
+/*                       Collective routines                                 */
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Bcast_All( int count, int root ){
@@ -568,6 +618,9 @@ double measure_Shmem_Reduce_And_All_SK( int count, int root ){
 }
 
 /*---------------------------------------------------------------------------*/
+/*                             Contexts                                      */
+/*---------------------------------------------------------------------------*/
+
 /* We cannot pass the options directly, because it would require modifying the parser
    in order to accept these values. */
 
@@ -645,6 +698,8 @@ double measure_Shmem_Ctx_Destroy_Nostore(){
 }
 
 /*---------------------------------------------------------------------------*/
+/*                       Memory management routines                          */
+/*---------------------------------------------------------------------------*/
 
 double measure_Shmem_Malloc( int size ){
   double start_time = 1.0, end_time = 0.0;
@@ -719,6 +774,8 @@ double measure_Shmem_Lock_Test_Busy(){
     return -1.0;
 }
 
+/*---------------------------------------------------------------------------*/
+/*                                Locks                                      */
 /*---------------------------------------------------------------------------*/
 
 /* Using this function, all the processes but the last one are testing the lock. 
