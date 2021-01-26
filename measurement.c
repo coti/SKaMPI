@@ -46,6 +46,7 @@ static double max_relative_standard_error = 0.10;
 static int min_repetitions = 8;
 static int max_repetitions = 33;
 static int max_nr_node_times = 16;
+static double unit_seconds = 1e6;
 
 #define First_interval 0.00000 /* rather to small, than to large */
 
@@ -76,6 +77,13 @@ static void call_set_max_nr_node_times(struct variable *result, struct variable 
   max_nr_node_times = par[0].u.intv;
 }
 
+static void call_set_unit(struct variable *result, struct variable par[])
+{
+    /* default: 1e6 = us */
+    unit_seconds = par[0].u.doublev;
+    printf( "%e\n", unit_seconds );
+}
+
 void init_builtin_measurement_functions(void)
 {
   insert_function(NULL, &call_set_max_relative_standard_error, NULL, 
@@ -86,6 +94,8 @@ void init_builtin_measurement_functions(void)
 		  "set_max_repetitions", "i", TYPE_VOID);
   insert_function(NULL, &call_set_max_nr_node_times, NULL,
 		  "set_max_nr_node_times", "i", TYPE_VOID);
+  insert_function(NULL, &call_set_unit, NULL,
+		  "set_unit", "f", TYPE_VOID);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -110,9 +120,9 @@ static void update_std_error(int a, int n)
   int i, p;
   double mult;
 #ifdef SKAMPI_USE_PAPI
-    mult = 1.0;
+    mult = 1e-6*unit_seconds;
 #else
-    mult = 1.0e6;
+    mult = unit_seconds;
 #endif   
 
   for( i = a; i < n; i++) {
@@ -252,9 +262,9 @@ static double normalize_time(double t)
 {
   double mult;
 #ifdef SKAMPI_USE_PAPI
-    mult = 1.0;
+    mult = 1e-6*unit_seconds;
 #else
-    mult = 1.0e6;
+    mult = unit_seconds;
 #endif   
     
   return (t - start_batch + tds[get_global_rank(0)])*mult;
@@ -269,9 +279,9 @@ void init_synchronization(void)
 {
   double mult;
 #ifdef SKAMPI_USE_PAPI
-    mult = 1.0;
+    mult = 1e-6*unit_seconds;
 #else
-    mult = 1.0e6;
+    mult = unit_seconds;
 #endif   
   current_synchronization = form_of_synchronization;
   max_counter = First_max_counter;
@@ -293,9 +303,9 @@ double start_synchronization(void)
 {
   double mult;
 #ifdef SKAMPI_USE_PAPI
-    mult = 1.0;
+    mult = 1e-6*unit_seconds;
 #else
-    mult = 1.0e6;
+    mult = unit_seconds;
 #endif   
   switch( current_synchronization ) {
   case SYNC_BARRIER:
@@ -432,11 +442,12 @@ static void measurement_loop(struct term *t)
   double *quantiles;
   double mult;
 #ifdef SKAMPI_USE_PAPI
-    mult = 1.0;
+    mult = 1e-6*unit_seconds;
 #else
-    mult = 1.0e6;
+    mult = unit_seconds;
 #endif   
-
+    // printf( "Mult: %e -- %e\n", mult, unit_seconds );
+    
   int *recv_counts = NULL;
   int *recv_displs = NULL;
 
