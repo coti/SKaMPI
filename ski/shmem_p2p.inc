@@ -24,3 +24,9 @@ begin measurement "Quiet_Put"
   od
 end measurement
 
+begin measurement "Put_Full"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+    measure comm_pt2pt : Shmem_Put_Full(count, 5)
+  od
+end measurement
+

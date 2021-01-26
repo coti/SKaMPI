@@ -161,6 +161,40 @@ double measure_Shmem_Put_Fence_Bidirectional( int count, int iterations ){
 
 /*---------------------------------------------------------------------------*/
 
+void init_Shmem_Put_Full( int count, int iterations ) {
+  init_synchronization();
+}
+
+
+double measure_Shmem_Put_Full( int count, int iterations ){
+  double start_time = 1.0, end_time = 0.0;
+  char* sym;
+  int i, rank, size;
+  rank = shmem_my_pe();
+  size = shmem_n_pes();
+
+  if (iterations<0) {
+    return -1.0;   /* indicate that this definitely is an error */
+  }
+  if (iterations==0) {
+    return 0.0;    /* avoid division by zero at the end */
+  }
+
+  sym = shmem_malloc( count );
+  start_time = start_synchronization();
+
+  for (i=0; i<iterations; i++) {
+      shmem_putmem( sym, get_send_buffer(), count, (rank + 1 ) % size );
+      shmem_quiet();
+  }
+
+  end_time = stop_synchronization();
+  shmem_free( sym );
+  return (end_time - start_time)/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
 void init_Shmem_Put_Dedicated( int count, int iterations ) {
   init_synchronization();
 }
