@@ -77,8 +77,12 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = skampi$(EXEEXT)
-@ENABLE_OPENSHMEM_TRUE@am__append_1 = -loshmem
-@ENABLE_PAPI_TRUE@am__append_2 = -lpapi
+@ENABLE_OPENSHMEM_TRUE@am__append_1 = measurements/openshmem.c        measurements/openshmem_atomic.c  \
+@ENABLE_OPENSHMEM_TRUE@		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c \
+@ENABLE_OPENSHMEM_TRUE@		measurements/openshmem_coll.c   measurements/openshmem_locks.c
+
+@ENABLE_OPENSHMEM_TRUE@am__append_2 = -loshmem
+@ENABLE_PAPI_TRUE@am__append_3 = -lpapi
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -101,21 +105,40 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am__skampi_SOURCES_DIST = accounting.c autorefine.c compile.c debug.c \
+	exec.c main.c measurement.c mem.c misc.c output.c print.c \
+	symboltable.c synchronize.c m.c lex.yy.c parser.y lexer.lex \
+	measurements/bug.c measurements/coll.c \
+	measurements/datatypes.c measurements/delayed.c \
+	measurements/demo.c measurements/helpers.c measurements/io.c \
+	measurements/localio.c measurements/mmisc.c \
+	measurements/node2node.c measurements/onesided.c \
+	measurements/pt2pt.c measurements/openshmem.c \
+	measurements/openshmem_atomic.c measurements/openshmem_ctx.c \
+	measurements/openshmem_p2p.c measurements/openshmem_coll.c \
+	measurements/openshmem_locks.c
 am__dirstamp = $(am__leading_dot)dirstamp
-am__objects_1 = measurements/bug.$(OBJEXT) measurements/coll.$(OBJEXT) \
+@ENABLE_OPENSHMEM_TRUE@am__objects_1 =  \
+@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem.$(OBJEXT) \
+@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_atomic.$(OBJEXT) \
+@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_ctx.$(OBJEXT) \
+@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_p2p.$(OBJEXT) \
+@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_coll.$(OBJEXT) \
+@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_locks.$(OBJEXT)
+am__objects_2 = measurements/bug.$(OBJEXT) measurements/coll.$(OBJEXT) \
 	measurements/datatypes.$(OBJEXT) \
 	measurements/delayed.$(OBJEXT) measurements/demo.$(OBJEXT) \
 	measurements/helpers.$(OBJEXT) measurements/io.$(OBJEXT) \
 	measurements/localio.$(OBJEXT) measurements/mmisc.$(OBJEXT) \
 	measurements/node2node.$(OBJEXT) \
 	measurements/onesided.$(OBJEXT) measurements/pt2pt.$(OBJEXT) \
-	measurements/openshmem.$(OBJEXT)
+	$(am__objects_1)
 am_skampi_OBJECTS = accounting.$(OBJEXT) autorefine.$(OBJEXT) \
 	compile.$(OBJEXT) debug.$(OBJEXT) exec.$(OBJEXT) \
 	main.$(OBJEXT) measurement.$(OBJEXT) mem.$(OBJEXT) \
 	misc.$(OBJEXT) output.$(OBJEXT) print.$(OBJEXT) \
 	symboltable.$(OBJEXT) synchronize.$(OBJEXT) m.$(OBJEXT) \
-	lex.yy.$(OBJEXT) parser.$(OBJEXT) $(am__objects_1)
+	lex.yy.$(OBJEXT) parser.$(OBJEXT) $(am__objects_2)
 skampi_OBJECTS = $(am_skampi_OBJECTS)
 am__DEPENDENCIES_1 =
 skampi_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -156,7 +179,7 @@ am__v_YACC_0 = @echo "  YACC    " $@;
 am__v_YACC_1 = 
 YLWRAP = $(top_srcdir)/build-aux/ylwrap
 SOURCES = $(skampi_SOURCES)
-DIST_SOURCES = $(skampi_SOURCES)
+DIST_SOURCES = $(am__skampi_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -295,18 +318,19 @@ ACLOCAL_AMFLAGS = -I config
 AM_YFLAGS = -d
 BUILT_SOURCES = lex.yy.c parser.c parser.h m.c
 CLEANFILES = lex.yy.c parser.c parser.h m.c
-MEASUREMENTS = \
-	measurements/bug.c measurements/coll.c measurements/datatypes.c measurements/delayed.c measurements/demo.c measurements/helpers.c measurements/io.c \
-	measurements/localio.c measurements/mmisc.c measurements/node2node.c measurements/onesided.c measurements/pt2pt.c \
-	measurements/openshmem.c
-
+MEASUREMENTS = measurements/bug.c measurements/coll.c \
+	measurements/datatypes.c measurements/delayed.c \
+	measurements/demo.c measurements/helpers.c measurements/io.c \
+	measurements/localio.c measurements/mmisc.c \
+	measurements/node2node.c measurements/onesided.c \
+	measurements/pt2pt.c $(am__append_1)
 skampi_SOURCES = \
 	accounting.c autorefine.c compile.c debug.c exec.c main.c measurement.c mem.c misc.c output.c print.c symboltable.c synchronize.c \
 	m.c lex.yy.c \
 	parser.y lexer.lex \
 	$(MEASUREMENTS)
 
-skampi_LDADD = -lm @LEXLIB@ $(am__append_1) $(am__append_2)
+skampi_LDADD = -lm @LEXLIB@ $(am__append_2) $(am__append_3)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -423,6 +447,16 @@ measurements/pt2pt.$(OBJEXT): measurements/$(am__dirstamp) \
 	measurements/$(DEPDIR)/$(am__dirstamp)
 measurements/openshmem.$(OBJEXT): measurements/$(am__dirstamp) \
 	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/openshmem_atomic.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/openshmem_ctx.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/openshmem_p2p.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/openshmem_coll.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/openshmem_locks.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
 
 skampi$(EXEEXT): $(skampi_OBJECTS) $(skampi_DEPENDENCIES) $(EXTRA_skampi_DEPENDENCIES) 
 	@rm -f skampi$(EXEEXT)
@@ -463,6 +497,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/node2node.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/onesided.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/openshmem.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/openshmem_atomic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/openshmem_coll.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/openshmem_ctx.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/openshmem_locks.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/openshmem_p2p.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@measurements/$(DEPDIR)/pt2pt.Po@am__quote@
 
 .c.o:

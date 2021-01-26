@@ -7,8 +7,13 @@ CLEANFILES = lex.yy.c parser.c parser.h m.c
 
 MEASUREMENTS = \
 	measurements/bug.c measurements/coll.c measurements/datatypes.c measurements/delayed.c measurements/demo.c measurements/helpers.c measurements/io.c \
-	measurements/localio.c measurements/mmisc.c measurements/node2node.c measurements/onesided.c measurements/pt2pt.c \
-	measurements/openshmem.c
+	measurements/localio.c measurements/mmisc.c measurements/node2node.c measurements/onesided.c measurements/pt2pt.c
+
+if ENABLE_OPENSHMEM
+MEASUREMENTS += measurements/openshmem.c        measurements/openshmem_atomic.c  \
+		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c \
+		measurements/openshmem_coll.c   measurements/openshmem_locks.c
+endif
 
 skampi_SOURCES = \
 	accounting.c autorefine.c compile.c debug.c exec.c main.c measurement.c mem.c misc.c output.c print.c symboltable.c synchronize.c \
