@@ -71,3 +71,50 @@ begin measurement "Shmem_Ctx_Atomic_Compare_Swap_No"
       measure comm_pt2pt : Shmem_Ctx_Atomic_Compare_Swap_No( 5 )
 end measurement
 
+begin measurement "Shmem_Atomic_Inc"
+      measure comm_pt2pt : Shmem_Atomic_Inc( 5 )
+end measurement
+
+begin measurement "Shmem_Ctx_Atomic_Inc"
+      measure comm_pt2pt : Shmem_Ctx_Atomic_Inc( 5 )
+end measurement
+
+begin measurement "Shmem_Atomic_Set"
+      measure comm_pt2pt : Shmem_Atomic_Set( 5 )
+end measurement
+
+begin measurement "Shmem_Ctx_Atomic_Set"
+      measure comm_pt2pt : Shmem_Ctx_Atomic_Set( 5 )
+end measurement
+
+begin measurement "Shmem_Atomic_Add"
+      measure comm_pt2pt : Shmem_Atomic_Add( 5 )
+end measurement
+
+begin measurement "Shmem_Ctx_Atomic_Add"
+      measure comm_pt2pt : Shmem_Ctx_Atomic_Add( 5 )
+end measurement
+
+begin measurement "Shmem_Atomic_And"
+      measure comm_pt2pt : Shmem_Atomic_And( 5 )
+end measurement
+
+begin measurement "Shmem_Ctx_Atomic_And"
+      measure comm_pt2pt : Shmem_Ctx_Atomic_And( 5 )
+end measurement
+
+begin measurement "Shmem_Atomic_Or"
+      measure comm_pt2pt : Shmem_Atomic_Or( 5 )
+end measurement
+
+begin measurement "Shmem_Ctx_Atomic_Or"
+      measure comm_pt2pt : Shmem_Ctx_Atomic_Or( 5 )
+end measurement
+
+begin measurement "Shmem_Atomic_Xor"
+      measure comm_pt2pt : Shmem_Atomic_Xor( 5 )
+end measurement
+
+begin measurement "Shmem_Ctx_Atomic_Xor"
+      measure comm_pt2pt : Shmem_Ctx_Atomic_Xor( 5 )
+end measurement
