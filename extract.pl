@@ -11,6 +11,9 @@
 # Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure 
 # Fakultaet fuer Informatik
 # University of Karlsruhe
+#
+#           2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+# Universite Sorbonne Paris Nord.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -252,6 +255,8 @@ sub help
   --dir=<name>        specify the name of a directory, from which ALL files with
                       names ending with '.c' will be parsed (default: .)
                       this option is only used if no files are specified via --file
+  --excl=<name>       exclude files, for instance if a directory is assed with
+                      --dir=
 
   If --test is given, but no --file or --dir, then no files will be parsed.
 
@@ -270,6 +275,7 @@ EOM
 my $dirname = "";       # name of dir from which to get the files
 my $dir;		# directory handle
 my @files = ();		# all the files (if any) to be parsed
+my @excl  = ();		# files excluded from above
 
 my $do_tests = 0;
 my $do_test_perl = 0;
@@ -324,7 +330,10 @@ sub parse_args
         elsif ($arg =~ /--file=(.*)/) {
             push @files, $1;
         }
-        elsif ($arg =~ /--help$/) {
+	elsif ($arg =~ /--excl=(.*)/) {
+	    push @excl, $1;
+        }
+	elsif ($arg =~ /--help$/) {
             help();
         }
         else {
@@ -358,8 +367,8 @@ sub check_args
     # but I don't know perl well enough
     foreach $filename (@files) {
         if($dirname eq "") { $dirname = "."; }
-        if ($filename =~ /\.c$/) { # only parse .c files
-            push @cfiles, $filename;
+        if ($filename =~ /\.c$/ && !($filename ~~ @excl)) { # only parse .c files
+	    push @cfiles, $filename;
         }
     }
     @files = @cfiles;

@@ -12,7 +12,8 @@ MEASUREMENTS = \
 if ENABLE_OPENSHMEM
 MEASUREMENTS += measurements/openshmem.c        measurements/openshmem_atomic.c  \
 		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c \
-		measurements/openshmem_coll.c   measurements/openshmem_locks.c
+		measurements/openshmem_coll.c   measurements/openshmem_locks.c \
+		measurements/higher_level.c
 endif
 
 skampi_SOURCES = \
@@ -33,7 +34,7 @@ endif
 
 
 m.c: $(MEASUREMENTS) extract.pl
-	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=measurements > m.c
+	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=measurements --excl=higher_level.c > m.c
 
 lex.yy.c: lexer.lex
 	flex  lexer.lex
