@@ -8,6 +8,7 @@
 #include "../misc.h"
 #include "../mem.h"
 #include "../synchronize.h"
+#include "../private_misc.h"
 
 #define max(a,b)              \
   ({ __typeof__ (a) _a = (a); \
@@ -37,6 +38,48 @@ static long mylock = 0;
 /*                    Point-to-point routines                                */
 /*---------------------------------------------------------------------------*/
 
+/* Just a simple remote put. Since the put operation returns as soon as
+   the buffer can be resused, there is no guarantee that the remote operation 
+   has completed. 
+*/
+
+void init_Shmem_Put_Simple( int count, int iterations ) {
+  init_synchronization();
+}
+
+double measure_Shmem_Put_Simple( int count, int iterations ){
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
+    char* sym;
+    int i;
+    
+    if (iterations<0) {
+        return -1.0;   /* indicate that this definitely is an error */
+    }
+    if (iterations==0) {
+        return 0.0;    /* avoid division by zero at the end */
+    }
+    
+    sym = shmem_malloc( count );
+    start_time = start_synchronization();
+    
+    shmem_fence();
+    for( i = 0 ; i < iterations ; i++ ) {
+        if (get_measurement_rank() == 0){
+            t1 = wtime();
+            shmem_putmem( sym, get_send_buffer(), count, 1 );
+            t2 = wtime();
+            ttime += (t2 - t1);
+            shmem_quiet();
+        }
+    }
+    
+    end_time = stop_synchronization();
+    shmem_free( sym );
+    return ttime/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
 void init_Shmem_Pingpong_Put_Put( int count, int iterations ) {
     /*onesided_winsize = get_extent(count, datatype);
 
@@ -60,20 +103,20 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
   if (iterations==0) {
     return 0.0;    /* avoid division by zero at the end */
   }
-
+  
   sym = shmem_malloc( count );
   start_time = start_synchronization();
-
+  
   shmem_fence();
   for (i=0; i<iterations; i++) {
       if (get_measurement_rank() == 0){
           shmem_putmem( sym, get_send_buffer(), count, 1 );
-     }
-      shmem_fence();
+          shmem_quiet();
+      }
       if (get_measurement_rank() == 1){
           shmem_putmem( sym, get_recv_buffer(), count, 0 );
-     }
-      shmem_fence();
+      }
+      shmem_quiet();
   }
 
   end_time = stop_synchronization();
@@ -84,13 +127,6 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Put_Fence_Bidirectional( int count, int iterations ) {
-    /*onesided_winsize = get_extent(count, datatype);
-
-  set_send_buffer_usage(onesided_winsize);
-  set_reported_message_size(onesided_winsize);
-
-  set_recv_buffer_usage(onesided_winsize);*/
-
   init_synchronization();
 }
 
@@ -118,10 +154,51 @@ double measure_Shmem_Put_Fence_Bidirectional( int count, int iterations ){
       shmem_fence();
   }
 
-
   end_time = stop_synchronization();
   shmem_free( sym );
   return (end_time - start_time)/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Put_Dedicated( int count, int iterations ) {
+  init_synchronization();
+}
+
+double measure_Shmem_Put_Dedicated( int count, int iterations ){
+  double start_time = 1.0, end_time = 0.0;
+  char* sym;
+  int i, rank, size;
+  rank = shmem_my_pe();
+  size = shmem_n_pes();
+
+  if (iterations<0) {
+    return -1.0;   /* indicate that this definitely is an error */
+  }
+  if (iterations==0) {
+    return 0.0;    /* avoid division by zero at the end */
+  }
+
+  sym = shmem_malloc( count );
+
+  if( rank == 0 ){
+      start_time = start_synchronization();
+      shmem_putmem( sym, get_send_buffer(), count, 1 );
+
+
+      end_time = stop_synchronization();
+  } else {
+      start_time = start_synchronization();
+
+      end_time = stop_synchronization();
+
+  }
+
+  // TODO
+
+  
+  shmem_free( sym );
+  return (end_time - start_time);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -729,6 +806,73 @@ double measure_Shmem_Free(){
 
 /*---------------------------------------------------------------------------*/
 
+/*---------------------------------------------------------------------------*/
+/*                    Memory ordering and synchronizations                   */
+/*---------------------------------------------------------------------------*/
+
+/* This function simply measures the time taken by a shmem_quiet call */
+
+void init_Shmem_Fence( int iterations ){
+    init_synchronization();
+}
+
+double measure_Shmem_Fence( int iterations ){
+    double start_time = 1.0, end_time = 0.0;
+    int i;
+    start_time = start_synchronization();
+    for( i = 0 ; i < iterations ; i++ ) {
+        shmem_quiet();
+    }
+    end_time = stop_synchronization();
+    
+    return (end_time - start_time)/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/* shmem_quiet encures completion of RMA routines, so the time to complete
+   a shmem_quiet can depend on the RMA routines issued before. This function
+   measures the time taken by shmem_quiet with respect to the size of a shemm_put 
+   operation issued just before.
+*/
+
+void init_Shmem_Quiet_Put( int count, int iterations ){
+    init_synchronization();
+    target = (char*) shmalloc( count );
+}
+
+void finalize_Shmem_Quiet_Put( int count, int iterations ){
+    shfree( target );
+    target = NULL;
+}
+
+double measure_Shmem_Quiet_Put( int count, int iterations ){
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
+    char* sym;
+    int i, rank, size;
+    rank = shmem_my_pe();
+    size = shmem_n_pes();
+    
+    start_time = start_synchronization();
+    for( i = 0 ; i < iterations ; i++ ) {
+
+        shmem_char_put( target, get_send_buffer(), count, (rank+1)%size );
+        
+        t1 = wtime();
+        shmem_quiet();
+        t2 = wtime();
+        ttime = ( t2 - t1 );
+    }
+    end_time = stop_synchronization();
+    
+    return ttime/iterations;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*                                Locks                                      */
+/*---------------------------------------------------------------------------*/
+
 /* Using this function, only process 0 will have the time 
 */
 
@@ -773,10 +917,6 @@ double measure_Shmem_Lock_Test_Busy(){
     }
     return -1.0;
 }
-
-/*---------------------------------------------------------------------------*/
-/*                                Locks                                      */
-/*---------------------------------------------------------------------------*/
 
 /* Using this function, all the processes but the last one are testing the lock. 
    The lock is held by the lst process.

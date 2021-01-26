@@ -1,12 +1,13 @@
 set_min_repetitions(8)
 set_max_repetitions(30)
 set_max_relative_standard_error(0.03)
+set_unit(1000000000)
 
 num_procs = get_comm_size(MPI_COMM_WORLD)
 comm_pt2pt = MPI_COMM_WORLD
 # set_skampi_buffer_mpi_alloc_mem(4mb,MPI_INFO_NULL)
 
-MAXSIZE = 65536
+MAXSIZE = 131072
 
 set_skampi_buffer( MAXSIZE )
 
