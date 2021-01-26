@@ -30,3 +30,27 @@ begin measurement "Put_Full"
   od
 end measurement
 
+begin measurement "Put_Nonblocking_Post"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+    measure comm_pt2pt : Shmem_Put_Nonblocking_Post(count, 5)
+  od
+end measurement
+
+begin measurement "Put_Nonblocking_Full"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+    measure comm_pt2pt : Shmem_Put_Nonblocking_Full(count, 5)
+  od
+end measurement
+
+begin measurement "Put_Nonblocking_Quiet"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+    measure comm_pt2pt : Shmem_Put_Nonblocking_Quiet(count, 5)
+  od
+end measurement
+
+begin measurement "Put_Nonblocking_Overlap"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+    measure comm_pt2pt : Shmem_Put_Nonblocking_Overlap(count, 5)
+  od
+end measurement
+
