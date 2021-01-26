@@ -11,9 +11,9 @@ MAXSIZE = 131072
 
 set_skampi_buffer( MAXSIZE )
 
-@include "shmem_p2p.inc"
+#@include "shmem_p2p.inc"
 #@include "shmem_collective.inc"
 #@include "shmem_ctx.inc"
-#@include "shmem_atomic.inc"
+@include "shmem_atomic.inc"
 #@include "shmem_alloc.inc"
 #@include "shmem_lock.inc"

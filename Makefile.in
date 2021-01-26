@@ -79,7 +79,7 @@ POST_UNINSTALL = :
 bin_PROGRAMS = skampi$(EXEEXT)
 @ENABLE_OPENSHMEM_TRUE@am__append_1 = measurements/openshmem.c        measurements/openshmem_atomic.c  \
 @ENABLE_OPENSHMEM_TRUE@		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c \
-@ENABLE_OPENSHMEM_TRUE@		measurements/openshmem_coll.c   measurements/openshmem_locks.c
+@ENABLE_OPENSHMEM_TRUE@		measurements/openshmem_coll.c   measurements/openshmem_locks.c 
 
 @ENABLE_OPENSHMEM_TRUE@am__append_2 = -loshmem
 @ENABLE_PAPI_TRUE@am__append_3 = -lpapi

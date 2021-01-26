@@ -4,7 +4,6 @@
 #include <shmem.h>
 #include <stdlib.h>
 #include "../mpiversiontest.h"
-#include <unistd.h> // for usleep
 
 #include "../misc.h"
 #include "../mem.h"
@@ -22,127 +21,579 @@
   }                           \
      *ack = 0; })
 
-
-#pragma weak begin_skampi_extensions
-
 #define M 120  /* The M parameter of the SK algorithms, "large" */
 int* ack;
-int size;
 char* psync;
 char* source;
 char* target;
 char* pwrk;
 shmem_ctx_t context;
 
-/*---------------------------------------------------------------------------*/
-/*                          Atomic routines                                  */
+double erusaem_Shmem_Atomic_XXX( int iterations, int (*routine)( int*, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank%2;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( ack, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( ack, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( ack, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
+double erusaem_Shmem_Ctx_Atomic_XXX( int iterations, int (*routine)( shmem_ctx_t, int*, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank%2;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( context, ack, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( context, ack, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( context, ack, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
 /*---------------------------------------------------------------------------*/
 
-void init_Shmem_Atomic_Fetch(){
+double erusaem_Shmem_Atomic_XXX_2( int iterations, int (*routine)( int*, int, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size, value;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank%2;
+    value = 4242;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( ack, value, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( ack, value, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( ack, value, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
+double erusaem_Shmem_Ctx_Atomic_XXX_2( int iterations, int (*routine)( shmem_ctx_t, int*, int, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size, value;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank % 2;
+    value = 4242;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( context, ack, value, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( context, ack, value, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( context, ack, value, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+/* This one is used for compare-and-swap routines 
+ */
+
+double erusaem_Shmem_Atomic_XXX_3( int iterations, bool cond, int (*routine)( int*, int, int, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size, value, cmp;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank%2;
+    value = 4242;
+    if( cond == True ){
+        if( mod == 1 ) cmp = rank - 1;
+        if( mod == 0 && rank < size - 1 ) cmp = rank + 1;
+        if( size % 2 > 0 && rank == size - 1 ) cmp = 0;
+    } else {
+        cmp = size;
+    }
+
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( ack, cmp, value, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( ack, cmp, value, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( ack, cmp, value, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
+double erusaem_Shmem_Ctx_Atomic_XXX_3( int iterations, bool cond, int (*routine)( shmem_ctx_t, int*, int, int, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size, value, cmp;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank % 2;
+    value = 4242;
+    if( cond == True ){
+        if( mod == 1 ) cmp = rank - 1;
+        if( mod == 0 && rank < size - 1 ) cmp = rank + 1;
+        if( size % 2 > 0 && rank == size - 1 ) cmp = 0;
+    } else {
+        cmp = size;
+    }
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( context, ack, cmp, value, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( context, ack, cmp, value, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( context, ack, cmp, value, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
+#pragma weak begin_skampi_extensions
+
+/* The initialization and finalization routines are always the same */
+
+void tini_Shmem_Atomic( ){
   ack = shmem_malloc( sizeof( int ));
   *ack = get_measurement_rank();
   init_synchronization();
 }
 
-double measure_Shmem_Atomic_Fetch(){
-  double start_time = 1.0, end_time = 0.0, mytime;
-  int r, mod;
-  mod = get_measurement_rank() %2;
-
-  start_time = start_synchronization();
-
-  /* Odd-numbered processes fetch from their -1 neighbor */
-  if  ( mod == 1 ){
-    start_time = wtime();
-    r = shmem_int_atomic_fetch( ack, get_measurement_rank() - 1 );
-    end_time = wtime();
-  } 
-  if  ( mod == 1 ){
-    mytime = end_time - start_time;
-  }
-  shmem_barrier_all();
-
-  /* Even-numbered processes fetch from their +1 neighbor, if they have one */
-  if  ( mod == 0 && get_measurement_rank() < get_measurement_size() - 1 ){
-    start_time = wtime();
-    r = shmem_int_atomic_fetch( ack, get_measurement_rank() + 1 );
-    end_time = wtime();
-  } 
-  if  ( mod ==  0 && get_measurement_rank() < get_measurement_size() - 1 ){
-    mytime = end_time - start_time;
-  }
-  shmem_barrier_all();
-
-  /* Otherwise, the last process fetches from 0 */
-  if( get_measurement_size() % 2 > 0 ){
-    if  ( get_measurement_rank() == get_measurement_size() - 1 ){
-      start_time = wtime();
-      r = shmem_int_atomic_fetch( ack, 0 );
-      end_time = wtime();
-    } 
-    shmem_barrier_all();
-    if  ( get_measurement_rank() == get_measurement_size() - 1 ){
-      mytime = end_time - start_time;
-    }
-  }
-  end_time = stop_synchronization();
-  
-  return mytime;
-}
-
-void finalize_Shmem_Atomic_Fetch(){
-  shmem_free( ack );
-}
-
-void init_Shmem_Ctx_Atomic_Fetch(){
+void tini_Shmem_Ctx_Atomic( ){
   ack = shmem_malloc( sizeof( int ));
   shmem_ctx_create( SHMEM_CTX_SERIALIZED, &context );
   init_synchronization();
 }
 
-double measure_Shmem_Ctx_Atomic_Fetch(){
-  double start_time = 1.0, end_time = 0.0, mytime;
-  int r, mod;
-  mod = get_measurement_rank() %2;
-
-  /* Odd-numbered processes fetch from their -1 neighbor */
-  start_time = start_synchronization();
-  if  ( mod == 1 ){
-    start_time = wtime();
-    r = shmem_ctx_int_atomic_fetch( context, ack, get_measurement_rank() - 1 );
-    end_time = wtime();
-    mytime = end_time - start_time;
-  }
-  shmem_barrier_all();
-
-  /* Even-numbered processes fetch from their +1 neighbor, if they have one */
-  if  ( mod == 0 && get_measurement_rank() < get_measurement_size() - 1 ){
-    start_time = wtime();
-    r = shmem_ctx_int_atomic_fetch( context, ack, get_measurement_rank() + 1 );
-    end_time = wtime();
-    mytime = end_time - start_time;
-  }
-  shmem_barrier_all();
-
-  /* Otherwise, the last process fetches from 0 */
-  if( get_measurement_size() % 2 > 0 ){
-    if  ( get_measurement_rank() == get_measurement_size() - 1 ){
-      start_time = wtime();
-      r = shmem_ctx_int_atomic_fetch( context, ack, 0 );
-      end_time = wtime();
-      mytime = end_time - start_time;
-    }
-    shmem_barrier_all();
-  }
-  end_time = stop_synchronization();
-
-  return mytime;
+void ezilanif_Shmem_Atomic(){
+  shmem_free( ack );
 }
 
-void finalize_Shmem_Ctx_Atomic_Fetch(){
+void ezilanif_Shmem_Ctx_Atomic(){
   shmem_free( ack );
   shmem_ctx_destroy( context );
 }
+
+/*---------------------------------------------------------------------------*/
+/*                      Fetching atomic routines                             */
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Fetch( int iterations ){
+    tini_Shmem_Atomic();
+}
+
+void finalize_Shmem_Atomic_Fetch( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Fetch( int iterations ){
+    return erusaem_Shmem_Atomic_XXX( iterations, &shmem_int_atomic_fetch );
+}
+
+void init_Shmem_Ctx_Atomic_Fetch( int iterations ){
+    tini_Shmem_Ctx_Atomic( );
+}
+
+void finalize_Shmem_Ctx_Atomic_Fetch( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Fetch( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX( iterations, &shmem_ctx_int_atomic_fetch );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Fetch_Inc( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Fetch_Inc( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Fetch_Inc( int iterations ){
+    return erusaem_Shmem_Atomic_XXX( iterations, &shmem_int_atomic_fetch_inc );
+}
+
+void init_Shmem_Ctx_Atomic_Fetch_Inc( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Fetch_Inc( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Fetch_Inc( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX( iterations, &shmem_ctx_int_atomic_fetch_inc );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Swap( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Swap( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Swap( int iterations ){
+    return erusaem_Shmem_Atomic_XXX_2( iterations, &shmem_int_atomic_swap );
+}
+
+void init_Shmem_Ctx_Atomic_Swap( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Swap( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Swap( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX_2( iterations, &shmem_ctx_int_atomic_swap );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Fetch_Add( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Fetch_Add( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Fetch_Add( int iterations ){
+    return erusaem_Shmem_Atomic_XXX_2( iterations, &shmem_int_atomic_fetch_add );
+}
+
+void init_Shmem_Ctx_Atomic_Fetch_Add( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Fetch_Add( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Fetch_Add( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX_2( iterations, &shmem_ctx_int_atomic_fetch_add );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Fetch_And( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Fetch_And( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Fetch_And( int iterations ){
+    return erusaem_Shmem_Atomic_XXX_2( iterations, &shmem_int_atomic_fetch_and );
+}
+
+void init_Shmem_Ctx_Atomic_Fetch_And( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Fetch_And( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Fetch_And( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX_2( iterations, &shmem_ctx_int_atomic_fetch_and );
+}
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Fetch_Or( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Fetch_Or( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Fetch_Or( int iterations ){
+    return erusaem_Shmem_Atomic_XXX_2( iterations, &shmem_int_atomic_fetch_or );
+}
+
+void init_Shmem_Ctx_Atomic_Fetch_Or( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Fetch_Or( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Fetch_Or( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX_2( iterations, &shmem_ctx_int_atomic_fetch_or );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Fetch_Xor( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Fetch_Xor( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Fetch_Xor( int iterations ){
+    return erusaem_Shmem_Atomic_XXX_2( iterations, &shmem_int_atomic_fetch_xor );
+}
+
+void init_Shmem_Ctx_Atomic_Fetch_Xor( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Fetch_Xor( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Fetch_Xor( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX_2( iterations, &shmem_ctx_int_atomic_fetch_xor );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Compare_Swap_Yes( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Compare_Swap_Yes( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Compare_Swap_Yes( int iterations ){
+    return erusaem_Shmem_Atomic_XXX_3( iterations, True, &shmem_int_atomic_compare_swap );
+}
+
+void init_Shmem_Ctx_Atomic_Compare_Swap_Yes( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Compare_Swap_Yes( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Compare_Swap_Yes( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX_3( iterations, True, &shmem_ctx_int_atomic_compare_swap );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Atomic_Compare_Swap_No( int iterations ){
+    tini_Shmem_Atomic( );
+}
+
+void finalize_Shmem_Atomic_Compare_Swap_No( int iterations ){
+    ezilanif_Shmem_Atomic();
+}
+
+double measure_Shmem_Atomic_Compare_Swap_No( int iterations ){
+    return erusaem_Shmem_Atomic_XXX_3( iterations, False, &shmem_int_atomic_compare_swap );
+}
+
+void init_Shmem_Ctx_Atomic_Compare_Swap_No( int iterations ){
+    tini_Shmem_Ctx_Atomic();
+}
+
+void finalize_Shmem_Ctx_Atomic_Compare_Swap_No( int iterations ){
+    ezilanif_Shmem_Ctx_Atomic();
+}
+
+double measure_Shmem_Ctx_Atomic_Compare_Swap_No( int iterations ){
+    return erusaem_Shmem_Ctx_Atomic_XXX_3( iterations, False, &shmem_ctx_int_atomic_compare_swap );
+}
+
+/*---------------------------------------------------------------------------*/
+/*                    Non-fetching atomic routines                           */
+/*---------------------------------------------------------------------------*/
+
+#if 0
+void shmem_<TYPENAME>_atomic_set(TYPE *dest, TYPE value, int pe);
+/*---------------------------------------------------------------------------*/
+void shmem_<TYPENAME>_atomic_inc(TYPE *dest, int pe);
+/*---------------------------------------------------------------------------*/
+void shmem_<TYPENAME>_atomic_add(TYPE *dest, TYPE value, int pe);
+/*---------------------------------------------------------------------------*/
+void shmem_<TYPENAME>_atomic_and(TYPE *dest, TYPE value, int pe);
+/*---------------------------------------------------------------------------*/
+void shmem_<TYPENAME>_atomic_or(TYPE *dest, TYPE value, int pe);
+/*---------------------------------------------------------------------------*/
+void shmem_<TYPENAME>_atomic_xor(TYPE *dest, TYPE value, int pe);
+#endif
 
 /*---------------------------------------------------------------------------*/
 
