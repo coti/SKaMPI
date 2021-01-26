@@ -52,11 +52,11 @@ double measure_Shmem_Free(){
 
 /* This function simply measures the time taken by a shmem_quiet call */
 
-void init_Shmem_Fence( int iterations ){
+void init_Shmem_Quiet( int iterations ){
     init_synchronization();
 }
 
-double measure_Shmem_Fence( int iterations ){
+double measure_Shmem_Quiet( int iterations ){
     double start_time = 1.0, end_time = 0.0;
     int i;
     start_time = start_synchronization();
