@@ -81,7 +81,6 @@ static void call_set_unit(struct variable *result, struct variable par[])
 {
     /* default: 1e6 = us */
     unit_seconds = par[0].u.doublev;
-    printf( "%e\n", unit_seconds );
 }
 
 void init_builtin_measurement_functions(void)
@@ -446,8 +445,7 @@ static void measurement_loop(struct term *t)
 #else
     mult = unit_seconds;
 #endif   
-    // printf( "Mult: %e -- %e\n", mult, unit_seconds );
-    
+
   int *recv_counts = NULL;
   int *recv_displs = NULL;
 
