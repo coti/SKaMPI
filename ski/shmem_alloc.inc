@@ -14,3 +14,7 @@ begin measurement "Shmem_Align"
       measure comm_pt2pt : Shmem_Align( 10, 256 )
 end measurement
 
+begin measurement "Shmem_Calloc"
+      measure comm_pt2pt : Shmem_Calloc( 10, 64, 4 )
+end measurement
+

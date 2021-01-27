@@ -100,6 +100,26 @@ double measure_Shmem_Align( int iterations, int size ){
 }
 
 /*---------------------------------------------------------------------------*/
+
+double measure_Shmem_Calloc( int iterations, int nb, int size ){
+    double start_time = 1.0, end_time = 0.0, ttime = 0.0;
+    char* ptr;
+    int i;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ){
+        start_time = wtime();
+        ptr = (char*)shmem_calloc( nb, size );
+        ttime += ( wtime() - start_time );
+        shfree( ptr );
+    }
+    end_time = stop_synchronization();
+    
+    return ttime / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
 /*                    Memory ordering and synchronizations                   */
 /*---------------------------------------------------------------------------*/
 
