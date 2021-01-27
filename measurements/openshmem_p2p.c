@@ -167,6 +167,7 @@ double measure_Shmem_Put_Full( int count, int iterations ){
   }
 
   sym = shmem_malloc( count );
+  shmem_fence();
   start_time = start_synchronization();
 
   for (i=0; i<iterations; i++) {
@@ -288,9 +289,9 @@ double measure_Shmem_Put_Nonblocking_Quiet( int count, int iterations ){
     }
     
     sym = shmem_malloc( count );
+    shmem_fence();
     start_time = start_synchronization();
     
-    shmem_fence();
     for (i=0; i<iterations; i++) {
         shmem_putmem_nbi( sym, get_send_buffer(), count,  (rank + 1 ) % size );
         t1 = wtime();
@@ -334,11 +335,11 @@ double measure_Shmem_Put_Nonblocking_Overlap( int count, int iterations ){
     }
     
     sym = shmem_malloc( count );
+    shmem_fence();
     start_time = start_synchronization();
     
     /* Measure the time to perform a blocking operation */
     
-    shmem_fence();
     for( i = 0 ; i < iterations ; i++ ) {
         t1 = wtime();
         shmem_putmem( sym, get_send_buffer(), count, (rank + 1 ) % size );
@@ -366,7 +367,7 @@ double measure_Shmem_Put_Nonblocking_Overlap( int count, int iterations ){
     
     end_time = stop_synchronization();
     shmem_free( sym );
-    return ttime /= iterations;
+    return ttime / iterations;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -436,6 +437,40 @@ double measure_Shmem_Get_Round( int count, int iterations ){
 
   for (i=0; i<iterations; i++) {
       shmem_getmem( get_recv_buffer(), sym, count, (rank + 1 ) % size );
+  }
+
+  end_time = stop_synchronization();
+  shmem_free( sym );
+  return (end_time - start_time)/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Iget_Round( int count, int stride, int iterations ) {
+  init_synchronization();
+}
+
+
+double measure_Shmem_Iget_Round( int count, int stride, int iterations ){
+  double start_time = 1.0, end_time = 0.0;
+  char* sym;
+  int i, rank, size;
+  rank = shmem_my_pe();
+  size = shmem_n_pes();
+
+  if (iterations<0) {
+    return -1.0;   /* indicate that this definitely is an error */
+  }
+  if (iterations==0) {
+    return 0.0;    /* avoid division by zero at the end */
+  }
+
+  sym = shmem_malloc( count*sizeof( char ) * stride );
+  shmem_fence();
+  start_time = start_synchronization();
+
+  for (i=0; i<iterations; i++) {
+      shmem_char_iget( get_recv_buffer(), sym, stride, stride, count, (rank + 1 ) % size );
   }
 
   end_time = stop_synchronization();
@@ -629,11 +664,78 @@ double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
     
     end_time = stop_synchronization();
     shmem_free( sym );
-    return ttime /= iterations;
+    return ttime / iterations;
 }
 
 /*---------------------------------------------------------------------------*/
 
+void init_Shmem_G_Round( int iterations ) {
+  init_synchronization();
+}
+
+double measure_Shmem_G_Round( int iterations ){
+    double start_time = 1.0, end_time = 0.0;
+    char* sym;
+    int i, rank, size, k;
+    rank = shmem_my_pe();
+    size = shmem_n_pes();
+
+    if (iterations<0) {
+        return -1.0;   /* indicate that this definitely is an error */
+    }
+    if (iterations==0) {
+        return 0.0;    /* avoid division by zero at the end */
+    }
+    
+    sym = shmem_malloc( sizeof( int ) );
+    shmem_fence();
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        k = shmem_int_g( sym, (rank + 1 ) % size );
+    }
+    
+    end_time = stop_synchronization();
+    shmem_free( sym );
+    return (end_time - start_time) / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_G_Simple( int iterations ) {
+  init_synchronization();
+}
+
+double measure_Shmem_G_Simple( int iterations ){
+    double start_time = 1.0, end_time = 0.0;
+    char* sym;
+    int i, rank, size, k;
+    rank = shmem_my_pe();
+    size = shmem_n_pes();
+
+    if (iterations<0) {
+        return -1.0;   /* indicate that this definitely is an error */
+    }
+    if (iterations==0) {
+        return 0.0;    /* avoid division by zero at the end */
+    }
+    
+    sym = shmem_malloc( sizeof( int ) );
+    shmem_fence();
+    if( get_measurement_rank() == 0){
+        start_time = start_synchronization();
+        
+        for( i = 0 ; i < iterations ; i++ ) {
+            k = shmem_int_g( sym, (rank + 1 ) % size );
+        }
+        end_time = stop_synchronization();
+    }
+    
+    shmem_free( sym );
+    return (end_time - start_time) / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
 
 #pragma weak end_skampi_extensions
 

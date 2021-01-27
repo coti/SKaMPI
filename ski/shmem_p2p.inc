@@ -60,15 +60,24 @@ begin measurement "Get_Simple"
   od
 end measurement
 
-begin measurement "Get_Simple"
-  for count = 1 to MAXSIZE step *sqrt(2) do
-    measure comm_pt2pt : Shmem_Get_Simple(count, 5)
-  od
-end measurement
-
 begin measurement "Get_Round"
   for count = 1 to MAXSIZE step *sqrt(2) do
     measure comm_pt2pt : Shmem_Get_Round(count, 5)
+  od
+end measurement
+
+begin measurement "G_Round"
+  measure comm_pt2pt : Shmem_G_Round( 5)
+end measurement
+
+begin measurement "G_Simple"
+  measure comm_pt2pt : Shmem_G_Simple( 5)
+end measurement
+
+begin measurement "Iget_Round"
+  stride = 16
+  for count = 1 to MAXSIZE/stride step *sqrt(2) do
+    measure comm_pt2pt : Shmem_Iget_Round(count, stride, 5)
   od
 end measurement
 
@@ -95,4 +104,3 @@ begin measurement "Get_Nonblocking_Overlap"
     measure comm_pt2pt : Shmem_Get_Nonblocking_Overlap(count, 5)
   od
 end measurement
-
