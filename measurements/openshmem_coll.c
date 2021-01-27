@@ -159,12 +159,14 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
           if( root == rank ){
               for( i = 0 ; i < M ; i++ ){
                   shmem_int_atomic_add( ack, 1, task );
-                  wait_for_ack( 1 );
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  *ack = 0;
               }
           } else {
               if( task == rank ){
                   for( i = 0 ; i < M ; i++ ){
-                      wait_for_ack( 1 );
+                      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                      *ack = 0;
                       shmem_int_atomic_add( ack, 1, root );
                   }
               }
@@ -189,10 +191,11 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
           shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
           if( root == rank ){
-              wait_for_ack( 1 );
+              shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+              *ack = 0;
           } else {
               if( task == rank ) {
-                  shmem_int_atomic_add( ack, 1, root );
+                shmem_int_atomic_add( ack, 1, root );
               }
           }
           
@@ -207,7 +210,8 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
               shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
               if( root == rank ){
-                  wait_for_ack( 1 );
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  *ack = 0;
               } else {
                   if( task == rank ) {
                       shmem_int_atomic_add( ack, 1, root );
@@ -353,13 +357,15 @@ double measure_Shmem_Reduce_And_All_SK( int count, int root ){
       if( root == rank ){
 	for( i = 0 ; i < M ; i++ ){
 	  shmem_int_atomic_add( ack, 1, task );
-	  wait_for_ack( 1 );
+      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+      *ack = 0;
 	}
       } else {
 	if( task == rank ){
 	  for( i = 0 ; i < M ; i++ ){
-	    wait_for_ack( 1 );
-	    shmem_int_atomic_add( ack, 1, root );
+          shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+          *ack = 0;
+          shmem_int_atomic_add( ack, 1, root );
 	  }
 	}
       }
@@ -381,7 +387,8 @@ double measure_Shmem_Reduce_And_All_SK( int count, int root ){
 	shmem_int_atomic_add( ack, 1, task );
       } else {
 	if( task == rank ) {
-	  wait_for_ack( 1 );
+        shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+        *ack = 0;
 	}
       }
   
@@ -399,7 +406,8 @@ double measure_Shmem_Reduce_And_All_SK( int count, int root ){
 	  shmem_int_atomic_add( ack, 1, task );
 	} else {
 	  if( task == rank ) {
-	    wait_for_ack( 1 );
+        shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+        *ack = 0;
 	  }
 	}
       }
