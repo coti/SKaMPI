@@ -19,31 +19,84 @@ char* target;
 /*                       Memory management routines                          */
 /*---------------------------------------------------------------------------*/
 
-double measure_Shmem_Malloc( int size ){
-  double start_time = 1.0, end_time = 0.0;
-  char* ptr;
-
-  start_time = start_synchronization();
-  ptr = (char*)shmem_malloc( size );
-  end_time = stop_synchronization();
-
-  shfree( ptr );
-  return end_time - start_time;
+double measure_Shmem_Malloc( int iterations, int size ){
+    double start_time = 1.0, end_time = 0.0, ttime = 0.0;
+    char* ptr;
+    int i;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ){
+        start_time = wtime();
+        ptr = (char*)shmem_malloc( size );
+        ttime += ( wtime() - start_time );
+        shfree( ptr );
+    }
+    end_time = stop_synchronization();
+    
+    return ttime / iterations;
 }
 
 /*---------------------------------------------------------------------------*/
 
-double measure_Shmem_Free(){
-  double start_time = 1.0, end_time = 0.0;
+double measure_Shmem_Free( int iterations ){
+  double start_time = 1.0, end_time = 0.0, ttime = 0.0;
   char* ptr;
   int size = 4; // arbitrary
-  ptr = (char*)shmem_malloc( size );
+  int i;
 
   start_time = start_synchronization();
-  shfree( ptr );
-  end_time = stop_synchronization();
 
-  return end_time - start_time;
+  for( i = 0 ; i < iterations ; i++ ){
+      ptr = (char*)shmem_malloc( size );
+      start_time = wtime();
+      shfree( ptr );
+      ttime += ( wtime() - start_time );
+    }
+    end_time = stop_synchronization();
+    
+    return ttime / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+double measure_Shmem_Realloc( int iterations, int size ){
+    double start_time = 1.0, end_time = 0.0, ttime = 0.0;
+    int i;
+    char* ptr;
+    char* newptr;
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ){
+        ptr = (char*)shmem_malloc( size/2 );
+        start_time = wtime();
+        newptr = (char*)shmem_realloc( ptr, size );
+        ttime += ( wtime() - start_time );
+        shfree( ptr );
+    }
+    end_time = stop_synchronization();
+    
+    return ttime / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+double measure_Shmem_Align( int iterations, int size ){
+    double start_time = 1.0, end_time = 0.0, ttime = 0.0;
+    char* ptr;
+    int align = 2;
+    int i;
+
+    start_time = start_synchronization();
+    for( i = 0 ; i < iterations ; i++ ){
+        start_time = wtime();
+        ptr = (char*)shmem_align( align, size );
+        ttime += ( wtime() - start_time );
+        shfree( ptr );
+    }      
+    end_time = stop_synchronization();
+    
+    return ttime / iterations;
 }
 
 /*---------------------------------------------------------------------------*/
