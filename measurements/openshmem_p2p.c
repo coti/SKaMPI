@@ -507,7 +507,10 @@ double measure_Shmem_Put_Nonblocking_Overlap( int count, int iterations ){
 
     /* Perform the non-blocking operations */
     for (i=0; i<iterations; i++) {
+        t1 = wtime();
         shmem_putmem_nbi( sym, get_send_buffer(), count,  (rank + 1 ) % size );
+        t2 = wtime();
+        ttime += (t2 - t1);
         usleep( 2*btime );
 
         /* This is what we are measuring */
@@ -804,7 +807,10 @@ double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
 
     /* Perform the non-blocking operations */
     for (i=0; i<iterations; i++) {
+        t1 = wtime();
         shmem_getmem_nbi( get_recv_buffer(), sym, count,  (rank + 1 ) % size );
+        t2 = wtime();
+        ttime += (t2 - t1);
         usleep( 2*btime );
 
         /* This is what we are measuring */
