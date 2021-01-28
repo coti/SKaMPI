@@ -37,7 +37,7 @@ char* pwrk;
 /*                       Collective routines                                 */
 /*---------------------------------------------------------------------------*/
 
-void init_Shmem_Bcast_All( int count, int root ){
+void init_Shmem_Bcast_All( int count, int root, int iterations ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
@@ -47,7 +47,7 @@ void init_Shmem_Bcast_All( int count, int root ){
   init_synchronization();
 }
   
-void finalize_Shmem_Bcast_All( int count, int root ){
+void finalize_Shmem_Bcast_All( int count, int root, int iterations ){
   shmem_free( source );
   shmem_free( target );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
@@ -57,17 +57,87 @@ void finalize_Shmem_Bcast_All( int count, int root ){
 
 /* TODO not necesarily on SHMEM_TEAM_WORLD */
 
-double measure_Shmem_Bcast_All( int count, int root ){
-    double start_time, end_time;
+double measure_Shmem_Bcast_All( int count, int root, int iterations ){
+    double start_time, end_time, btime, ttime = 0.0;
+    int i;
+
+    /* Warm-up */
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+    shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+    shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+#endif
 
     start_time = start_synchronization();
 
+    /* Measure the time to perform a barrier */
+    start_time = wtime();
+    for( i = 0 ; i < iterations ; i++ ){
+        shmem_barrier_all();
+    }
+    end_time = wtime();
+    btime = end_time - start_time;
+
+    /* Measure */
+
+    shmem_barrier_all();
+
+    for( i = 0 ; i < iterations ; i++ ){
+        start_time = wtime();
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+        shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+#endif
+        shmem_barrier_all();
+        end_time = wtime();
+        ttime += (end_time - start_time );
+    }
+    end_time = stop_synchronization();
+
+    return  ( ttime - btime ) / iterations;
+}
+
+/* This measurement method relies on SKaMPI's synchronization routines
+ */
+
+void init_Shmem_Bcast_All_Synchro( int count, int root ){
+  size = shmem_n_pes();
+  source = (char*) shmem_malloc( count );
+  target = (char*) shmem_malloc( count );
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+  psync = malloc( SHMEM_BCAST_SYNC_SIZE );
+#endif
+  init_synchronization();
+}
+  
+void finalize_Shmem_Bcast_All_Synchro( int count , int root ){
+  shmem_free( source );
+  shmem_free( target );
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+  free( psync );
+#endif
+}
+
+double measure_Shmem_Bcast_All_Synchro( int count, int root ){
+    double start_time, end_time;
+    int i;
+
+    /* Warm-up */
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+    shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+    shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+#endif
+    
+    start_time = start_synchronization();
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
     shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
 #else
     shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
     end_time = stop_synchronization();
+    
     return  end_time - start_time;
 }
 
@@ -76,7 +146,7 @@ double measure_Shmem_Bcast_All( int count, int root ){
    of pipeling, depending on the order used to cycle over the tasks. 
 */
 
-void init_Shmem_Bcast_All_Rounds( int count ){
+void init_Shmem_Bcast_All_Rounds( int count, int iterations ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
@@ -86,7 +156,7 @@ void init_Shmem_Bcast_All_Rounds( int count ){
   init_synchronization();
 }
   
-void finalize_Shmem_Bcast_All_Rounds( int count ){
+void finalize_Shmem_Bcast_All_Rounds( int count, int iterations ){
   shmem_free( source );
   shmem_free( target );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
@@ -96,20 +166,22 @@ void finalize_Shmem_Bcast_All_Rounds( int count ){
 
 /* TODO not necesarily on SHMEM_TEAM_WORLD */
 
-double measure_Shmem_Bcast_All_Rounds( int count ){
+double measure_Shmem_Bcast_All_Rounds( int count, int iterations ){
     double start_time, end_time;
-    int root;
+    int root, i;
     
     start_time = start_synchronization();
-    for( root = 0 ; root < size ; root++ ){
+    for( i = 0 ; i < iterations ; i++ ){
+        for( root = 0 ; root < size ; root++ ){
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-      shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+            shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
 #else
-      shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
+            shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
+        }
     }
     end_time = stop_synchronization();
-    return  ( end_time - start_time ) / size;
+    return  (( end_time - start_time ) / size ) / iterations;
 }
 
 /* This method is described in:
@@ -147,31 +219,34 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
   int i, dst, task;
 
   /* The algorithm is written with two-sided communications. We are using atomic puts instead. */
+  start_time = start_synchronization();
   shmem_fence();
-  shmem_barrier_all();
 
   for( task = 0 ; task < size ; task++ ){
       if( task != root ) {
           
           /* First step: one-to-one communications */
-          
+          *ack = 0;
+          shmem_barrier_all();
+
           start_time = wtime();
           if( root == rank ){
               for( i = 0 ; i < M ; i++ ){
                   shmem_int_atomic_add( ack, 1, task );
-                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  shmem_int_wait_until( ack, SHMEM_CMP_GE, 1 );
                   *ack = 0;
               }
           } else {
               if( task == rank ){
+                  //          printf( "TUTU %d %d\n", rank, task );
                   for( i = 0 ; i < M ; i++ ){
-                      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                      shmem_int_wait_until( ack, SHMEM_CMP_GE, 1 );
                       *ack = 0;
                       shmem_int_atomic_add( ack, 1, root );
                   }
               }
           }
-          
+           
           t1 = wtime();
           rt1 = ( t1 - start_time ) / M;
           
@@ -182,9 +257,11 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
              - no task j on i's broadcast path delays the next broadcast 
           */
           
+          //     printf( "TITI %d %d\n", rank, task );
+           *ack = 0;
           shmem_barrier_all();
           
-          /* Initial broadcast / ack: assumption consistency check */
+         /* Initial broadcast / ack: assumption consistency check */
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
           shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
 #else
@@ -198,6 +275,8 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
                 shmem_int_atomic_add( ack, 1, root );
               }
           }
+
+          shmem_barrier_all();
           
           /* Mesurements */
           
@@ -209,9 +288,14 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
 #else
               shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
+
               if( root == rank ){
-                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
-                  *ack = 0;
+                 /* This is not possible because since these two operations are not 
+                     a single, atomic operation, a remote add can arrive between
+                     the wait_until and the *ack=0:
+                     shmem_int_wait_until( ack, SHMEM_CMP_GE, 1 );
+                     *ack = 0; */
+                  shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
               } else {
                   if( task == rank ) {
                       shmem_int_atomic_add( ack, 1, root );
@@ -225,9 +309,9 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
               mytime = rt2 - rt1/2;
           }
       }
-      
   }
-  
+  t1 = stop_synchronization();
+
   return mytime;
 }
 
