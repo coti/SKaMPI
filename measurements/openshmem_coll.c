@@ -289,19 +289,18 @@ double measure_Shmem_Bcast_All_SK( int count, int root, int iterations ){
 
               shmem_quiet(); // or shmem_fence
               
-              /* We cannot wait until SHMEM_CMP_EQ 1 and reset *ack to 0
-                 because these two operations are not one signel one,
-                 and the next bcast might interleave
-              */
               if( root == rank ){
                   shmem_int_atomic_fetch_inc( ack, task );
-                  shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  *ack = 0;
               } else {
                   if( task == rank ) {
-                      shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
+                      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                      *ack = 0;
                       shmem_int_atomic_fetch_inc( ack, root );
                   }
               }
+              
           }
           t2 = wtime();
           
