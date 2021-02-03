@@ -83,3 +83,41 @@ begin measurement "Shmem_Reduce_Fcollect_All-Synchro"
   od
 end measurement
 
+## All to all
+
+begin measurement "Shmem_Reduce_Alltoall_All-Consecutive"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+      measure comm_pt2pt : Shmem_Alltoall_Consecutive(count, 10)
+  od
+end measurement
+
+begin measurement "Shmem_Reduce_Alltoalls_All-Consecutive"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+      measure comm_pt2pt : Shmem_Alltoalls_Consecutive(count, 10)
+  od
+end measurement
+
+begin measurement "Shmem_Reduce_Alltoall_All-Barrier"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+      measure comm_pt2pt : Shmem_Alltoall_Barrier(count, 10)
+  od
+end measurement
+
+begin measurement "Shmem_Reduce_Alltoalls_All-Barrier"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+      measure comm_pt2pt : Shmem_Alltoalls_Barrier(count, 10)
+  od
+end measurement
+
+begin measurement "Shmem_Reduce_Alltoall_All-Synchro"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+      measure comm_pt2pt : Shmem_Alltoall_Synchro(count)
+  od
+end measurement
+
+begin measurement "Shmem_Reduce_Alltoalls_All-Synchro"
+  for count = 1 to MAXSIZE step *sqrt(2) do
+      measure comm_pt2pt : Shmem_Alltoalls_Synchro(count)
+  od
+end measurement
+

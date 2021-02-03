@@ -496,7 +496,7 @@ void ezilanif_shmem_collect( int count ){
 }
  
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_collect_consecutive( int count, int iterations, void (*routine)( team, void*, const void**, size_t) ){
+double erusaem_shmem_collect_consecutive( int count, int iterations, void (*routine)( team, void*, const void*, size_t) ){
 #else
 double erusaem_shmem_collect_consecutive( int count, int iterations, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
 #endif
@@ -517,18 +517,18 @@ double erusaem_shmem_collect_consecutive( int count, int iterations, void (*rout
 }
     
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)( team, void*, const void**, size_t) ){
+double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)( team, void*, const void*, size_t) ){
 #else
 double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
 #endif
     int i;
-    double start_time = 1.0, end_time = 0.0, btime, ttime;
+    double start_time = 1.0, end_time = 0.0, btime, ttime = 0.0;
     
     /* Warm-up */
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-        routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, count );
+    routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, count );
 #else
-        routine( (void*)target, (void*)source, count/4, 0, 0, size, (long*)psync );
+    routine( (void*)target, (void*)source, count/4, 0, 0, size, (long*)psync );
 #endif
 
     start_time = start_synchronization();
@@ -562,7 +562,7 @@ double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)
 }
 
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_collect_synchro( int count, void (*routine)( team, void*, const void**, size_t) ){
+double erusaem_shmem_collect_synchro( int count, void (*routine)( team, void*, const void*, size_t) ){
 #else
 double erusaem_shmem_collect_synchro( int count, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
 #endif
@@ -681,10 +681,224 @@ double measure_Shmem_Fcollect_Synchro( int count ){
     return erusaem_shmem_collect_synchro( count, &shmem_fcollectmem );
 #endif
 }
+ 
+/*---------------------------------------------------------------------------*/
+/*                             All-to-all                                    */
+/*---------------------------------------------------------------------------*/
 
+void tini_shmem_alltoall( int count ){
+  size = shmem_n_pes();
+  source = (char*) shmem_malloc( count*size );
+  target = (char*) shmem_malloc( count*size );
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
+#endif
+  init_synchronization();
+}
+
+void ezilanif_shmem_alltoall( int count ){
+  shmem_free( source );
+  shmem_free( target );
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+  free( psync );
+#endif
+}
+ 
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_alltoalls_consecutive( int count, int iterations,
+                                            void (*routine)( team, void*, const void*, ptrdiff_t, ptrdiff_t, size_t) ){
+#else
+double erusaem_shmem_alltoalls_consecutive( int count, int iterations,
+                                            void (*routine)( void*, const void*, ptrdiff_t, ptrdiff_t, size_t, int, int, int, long *)){
+#endif
+
+    int i;
+    double start_time = 1.0, end_time = 0.0;
+    ptrdiff_t dst = 1, sst = 1;
+    
+    start_time = start_synchronization();
+
+    for( i = 0 ; i < iterations ; i++ ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, dst, sst, count );
+#else
+        routine( (void*)target, (void*)source, dst, sst, count/4, 0, 0, size, (long*)psync );
+#endif
+    }
+    
+    end_time = stop_synchronization();
+    return  ( end_time - start_time) / iterations; 
+}
+    
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_alltoalls_barrier( int count, int iterations, void (*routine)( team, void*, const void*, ptrdiff_t, ptrdiff_t, size_t) ){
+#else
+double erusaem_shmem_alltoalls_barrier( int count, int iterations, void (*routine)( void*, const void*, ptrdiff_t, ptrdiff_t, size_t, int, int, int, long *)){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0, btime, ttime = 0.0;
+    ptrdiff_t dst = 1, sst = 1;
+
+    /* Warm-up */
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+    routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, dst, sst, count );
+#else
+    routine( (void*)target, (void*)source, dst, sst, count/4, 0, 0, size, (long*)psync );
+#endif
+
+    start_time = start_synchronization();
+
+    /* Measure the time to perform a barrier */
+    start_time = wtime();
+    for( i = 0 ; i < iterations ; i++ ){
+        shmem_barrier_all();
+    }
+    end_time = wtime();
+    btime = end_time - start_time;
+
+    /* Measure */
+
+    shmem_barrier_all();
+
+    for( i = 0 ; i < iterations ; i++ ){
+        start_time = wtime();
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, dst, sst, count );
+#else
+        routine( (void*)target, (void*)source, dst, sst, count/4, 0, 0, size, (long*)psync );
+#endif
+        shmem_barrier_all();
+        end_time = wtime();
+        ttime += (end_time - start_time );
+    }
+    end_time = stop_synchronization();
+
+    return  ( ttime - btime ) / iterations;
+}
+
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_alltoalls_synchro( int count, void (*routine)( team, void*, const void*, ptrdiff_t, ptrdiff_t, size_t) ){
+#else
+double erusaem_shmem_alltoalls_synchro( int count, void (*routine)( void*, const void*, ptrdiff_t, ptrdiff_t, size_t, int, int, int, long *)){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0;
+    ptrdiff_t dst = 1, sst = 1;
+    start_time = start_synchronization();
+    
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+    routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, dst, sst, count );
+#else
+    routine( (void*)target, (void*)source, dst, sst, count/4, 0, 0, size, (long*)psync );
+#endif
+    
+    end_time = stop_synchronization();
+    return  ( end_time - start_time);
+}
 
 /*---------------------------------------------------------------------------*/
 
+void init_Shmem_Alltoall_Consecutive( int count, int iterations ){
+    tini_shmem_alltoall( count );
+ }
+  
+void finalize_Shmem_Alltoall_Consecutive( int count, int iterations ){
+    ezilanif_shmem_alltoall( count );
+}
+
+double measure_Shmem_Alltoall_Consecutive( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 /* Same API, same measurement */
+    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_alltoall32 );
+#else
+    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_alltoallmem );
+#endif
+}
+
+void init_Shmem_Alltoalls_Consecutive( int count, int iterations ){
+    tini_shmem_alltoall( count );
+ }
+  
+void finalize_Shmem_Alltoalls_Consecutive( int count, int iterations ){
+    ezilanif_shmem_alltoall( count );
+}
+
+double measure_Shmem_Alltoalls_Consecutive( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 /* Same API, same measurement */
+    return erusaem_shmem_alltoalls_consecutive( count, iterations, &shmem_alltoalls32 );
+#else
+    return erusaem_shmem_alltoalls_consecutive( count, iterations, &shmem_alltoallsmem );
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Alltoall_Barrier( int count, int iterations ){
+    tini_shmem_alltoall( count );
+ }
+  
+void finalize_Shmem_Alltoall_Barrier( int count, int iterations ){
+    ezilanif_shmem_alltoall( count );
+}
+
+double measure_Shmem_Alltoall_Barrier( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 /* Same API, same measurement */
+    return erusaem_shmem_collect_barrier( count, iterations, &shmem_alltoall32 );
+#else
+    return erusaem_shmem_collect_barrier( count, iterations, &shmem_alltoallmem );
+#endif
+}
+
+void init_Shmem_Alltoalls_Barrier( int count, int iterations ){
+    tini_shmem_alltoall( count );
+ }
+  
+void finalize_Shmem_Alltoalls_Barrier( int count, int iterations ){
+    ezilanif_shmem_alltoall( count );
+}
+
+double measure_Shmem_Alltoalls_Barrier( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 /* Same API, same measurement */
+    return erusaem_shmem_alltoalls_barrier( count, iterations, &shmem_alltoalls32 );
+#else
+    return erusaem_shmem_alltoalls_barrier( count, iterations, &shmem_alltoallsmem );
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Alltoall_Synchro( int count ){
+    tini_shmem_collect( count );
+ }
+  
+void finalize_Shmem_Alltoall_Synchro( int count ){
+    ezilanif_shmem_collect( count );
+}
+
+double measure_Shmem_Alltoall_Synchro( int count ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+    return erusaem_shmem_collect_synchro( count, &shmem_alltoall32 );
+#else
+    return erusaem_shmem_collect_synchro( count, &shmem_alltoallmem );
+#endif
+}
+
+void init_Shmem_Alltoalls_Synchro( int count ){
+    tini_shmem_alltoall( count );
+ }
+  
+void finalize_Shmem_Alltoalls_Synchro( int count ){
+    ezilanif_shmem_alltoall( count );
+}
+
+double measure_Shmem_Alltoalls_Synchro( int count ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 /* Same API, same measurement */
+    return erusaem_shmem_alltoalls_synchro( count, &shmem_alltoalls32 );
+#else
+    return erusaem_shmem_alltoalls_synchro( count, &shmem_alltoallsmem );
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
 #pragma weak end_skampi_extensions
 
 #endif // SKAMPI_OPENSHMEM
