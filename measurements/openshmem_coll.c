@@ -22,7 +22,6 @@
   }                           \
      *ack = 0; })
 
-
 #pragma weak begin_skampi_extensions
 
 #define M 120  /* The M parameter of the SK algorithms, "large" */
@@ -190,7 +189,7 @@ double measure_Shmem_Bcast_All_Rounds( int count, int iterations ){
    DOI 10.1109/HPDC.1999.805279
 */
 
-void init_Shmem_Bcast_All_SK( int count, int root ){
+void init_Shmem_Bcast_All_SK( int count, int root, int iterations ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
@@ -202,7 +201,7 @@ void init_Shmem_Bcast_All_SK( int count, int root ){
   init_synchronization();
 }
   
-void finalize_Shmem_Bcast_All_SK( int count, int root ){
+void finalize_Shmem_Bcast_All_SK( int count, int root, int iterations ){
   shmem_free( source );
   shmem_free( target );
   shmem_free( ack );
@@ -213,7 +212,7 @@ void finalize_Shmem_Bcast_All_SK( int count, int root ){
 
 /* TODO not necesarily on SHMEM_TEAM_WORLD */
 
-double measure_Shmem_Bcast_All_SK( int count, int root ){
+double measure_Shmem_Bcast_All_SK( int count, int root, int iterations ){
   double start_time, t1, rt1, t2, rt2, mytime;
   int rank = shmem_my_pe();
   int i, dst, task;
@@ -231,24 +230,20 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
 
           start_time = wtime();
           if( root == rank ){
-              for( i = 0 ; i < M ; i++ ){
-                  shmem_int_atomic_add( ack, 1, task );
-                  shmem_int_wait_until( ack, SHMEM_CMP_GE, 1 );
-                  *ack = 0;
+              for( i = 0 ; i < iterations ; i++ ){
+                  shmem_int_atomic_fetch_inc( ack, task );
+                  shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
               }
           } else {
               if( task == rank ){
-                  //          printf( "TUTU %d %d\n", rank, task );
-                  for( i = 0 ; i < M ; i++ ){
-                      shmem_int_wait_until( ack, SHMEM_CMP_GE, 1 );
-                      *ack = 0;
-                      shmem_int_atomic_add( ack, 1, root );
+                  for( i = 0 ; i < iterations ; i++ ){
+                      shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
+                      shmem_int_atomic_fetch_inc( ack, root );
                   }
               }
-          }
-           
+          }           
           t1 = wtime();
-          rt1 = ( t1 - start_time ) / M;
+          rt1 = ( t1 - start_time );
           
           /* Second step: broadcasts, with ack. */
           /* Assumptions:
@@ -257,8 +252,7 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
              - no task j on i's broadcast path delays the next broadcast 
           */
           
-          //     printf( "TITI %d %d\n", rank, task );
-           *ack = 0;
+          *ack = 0;
           shmem_barrier_all();
           
          /* Initial broadcast / ack: assumption consistency check */
@@ -268,20 +262,24 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
           shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
           if( root == rank ){
+              shmem_int_atomic_fetch_inc( ack, task );
               shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
-              *ack = 0;
           } else {
               if( task == rank ) {
-                shmem_int_atomic_add( ack, 1, root );
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  shmem_int_atomic_fetch_inc( ack, root );
               }
           }
-
+          
+          *ack = 0;
           shmem_barrier_all();
           
           /* Mesurements */
           
           t1 = wtime();
-          for( i = 0 ; i < M ; i++ ){
+          for( i = 0 ; i < iterations ; i++ ){
+
+              if( source == rank ) source[0] = 1;
               
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
               shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
@@ -289,24 +287,27 @@ double measure_Shmem_Bcast_All_SK( int count, int root ){
               shmem_broadcast32( target, source, count/4, root, 0, 0, size, (void*)psync );
 #endif
 
+              shmem_quiet(); // or shmem_fence
+              
+              /* We cannot wait until SHMEM_CMP_EQ 1 and reset *ack to 0
+                 because these two operations are not one signel one,
+                 and the next bcast might interleave
+              */
               if( root == rank ){
-                 /* This is not possible because since these two operations are not 
-                     a single, atomic operation, a remote add can arrive between
-                     the wait_until and the *ack=0:
-                     shmem_int_wait_until( ack, SHMEM_CMP_GE, 1 );
-                     *ack = 0; */
+                  shmem_int_atomic_fetch_inc( ack, task );
                   shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
               } else {
                   if( task == rank ) {
-                      shmem_int_atomic_add( ack, 1, root );
+                      shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
+                      shmem_int_atomic_fetch_inc( ack, root );
                   }
               }
           }
           t2 = wtime();
           
           if( rank == task || root == rank ){ /* the root will keep the last time taken */
-              rt2 = (t2 - t1)/M;
-              mytime = rt2 - rt1/2;
+              rt2 = t2 - t1;
+              mytime = (rt2 - rt1)/iterations;
           }
       }
   }
