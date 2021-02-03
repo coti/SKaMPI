@@ -232,12 +232,14 @@ double measure_Shmem_Bcast_All_SK( int count, int root, int iterations ){
           if( root == rank ){
               for( i = 0 ; i < iterations ; i++ ){
                   shmem_int_atomic_fetch_inc( ack, task );
-                  shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  *ack = 0;
               }
           } else {
               if( task == rank ){
                   for( i = 0 ; i < iterations ; i++ ){
-                      shmem_int_wait_until( ack, SHMEM_CMP_GE, i+1 );
+                      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                      *ack = 0;
                       shmem_int_atomic_fetch_inc( ack, root );
                   }
               }
@@ -316,9 +318,12 @@ double measure_Shmem_Bcast_All_SK( int count, int root, int iterations ){
 }
 
 /*---------------------------------------------------------------------------*/
+/*                              Reductions                                   */
+/*---------------------------------------------------------------------------*/
 /* TODO other operations */
+/* and, or, xor, max, min, sum, prod */
 
-void init_Shmem_Reduce_And_All( int count, int root ){
+void tini_shmem_reduce( int count ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
@@ -328,8 +333,8 @@ void init_Shmem_Reduce_And_All( int count, int root ){
 #endif
   init_synchronization();
 }
-  
-void finalize_Shmem_Reduce_And_All( int count, int root ){
+
+void ezilanif_shmem_reduce( int count ){
   shmem_free( source );
   shmem_free( target );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
@@ -338,175 +343,345 @@ void finalize_Shmem_Reduce_And_All( int count, int root ){
 #endif
 }
 
-/* TODO not necesarily on SHMEM_TEAM_WORLD */
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_reduce_consecutive( int count, int iterations, void (*routine)( team, short, const short*, size_t) ){
+#else
+double erusaem_shmem_reduce_consecutive( int count, int iterations, void (*routine)( short*, const short*, int, int, int, int, short*, long* ) ){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0;
+    start_time = start_synchronization();
 
-double measure_Shmem_Reduce_And_All( int count, int root ){
-    double start_time, end_time;
+    for( i = 0 ; i < iterations ; i++ ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
+#else
+        routine( (short*)target, (short*)source, count/sizeof( short ), 0, 0, size, (short*)pwrk, (long*)psync );
+#endif
+    }
+    
+    end_time = stop_synchronization();
+    return  ( end_time - start_time) / iterations;
+}
+
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_reduce_barrier( int count, int iterations, void (*routine)( team, short, const short*, size_t) ){
+#else
+double erusaem_shmem_reduce_barrier( int count, int iterations, void (*routine)( short*, const short*, int, int, int, int, short*, long* ) ){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0, btime, ttime;
+    
+    /* Warm-up */
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
+#else
+        routine( (short*)target, (short*)source, count/sizeof( short ), 0, 0, size, (short*)pwrk, (long*)psync );
+#endif
 
     start_time = start_synchronization();
 
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-    shmem_short_and_reduce( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
-#else
-    shmem_short_and_to_all( (short*)target, (short*)source, count/sizeof( short ), root, 0, size, (short*)pwrk, (long*)psync );
-#endif
-    end_time = stop_synchronization();
-    return  end_time - start_time;
-}
-
-/* Rounds method. Cf Shmem_Bcast_All_Rounds. */
-
-void init_Shmem_Reduce_And_All_Rounds( int count ){
-  size = shmem_n_pes();
-  source = (char*) shmem_malloc( count );
-  target = (char*) shmem_malloc( count );
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-  pwrk  = (char*) malloc( max(count/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) );
-#endif
-  init_synchronization();
-}
-  
-void finalize_Shmem_Reduce_And_All_Rounds( int count ){
-  shmem_free( source );
-  shmem_free( target );
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-  free( psync );
-  free( pwrk );
-#endif
-}
-
-/* TODO not necesarily on SHMEM_TEAM_WORLD */
-
-double measure_Shmem_Reduce_And_All_Rounds( int count ){
-  double start_time, end_time;
-  int root;
-  
-  start_time = start_synchronization();
-  
-  for( root = 0 ; root < size ; root++ ){
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-    shmem_short_and_reduce( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
-#else
-    shmem_short_and_to_all( (short*)target, (short*)source, count/sizeof( short ), root, 0, size, (short*)pwrk, (long*)psync );
-#endif
-  }
-  end_time = stop_synchronization();
-  return  ( end_time - start_time ) / size;
-}
-
-/* This algorithm is based on the algorithm described by Bronis de Supinski and Nicholas Karonis
-   and implemented in measure_Shmem_Bcast_All_SK(). The processes perfom a reduction, and the root
-   acknowledges it to a process (one for each round). 
-*/
-
-void init_Shmem_Reduce_And_All_SK( int count, int root ){
-  size = shmem_n_pes();
-  source = (char*) shmem_malloc( count );
-  target = (char*) shmem_malloc( count );
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-  pwrk  = (char*) malloc( max(count/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) );
-#endif
-  init_synchronization();
-}
-
-void finalize_Shmem_Reduce_And_All_SK( int count, int root ){
-  shmem_free( source );
-  shmem_free( target );
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-  free( psync );
-  free( pwrk );
-#endif
-}
-
-/* TODO not necesarily on SHMEM_TEAM_WORLD */
-
-double measure_Shmem_Reduce_And_All_SK( int count, int root ){
-  double start_time, t1, rt1, t2, rt2, mytime;
-  int rank = shmem_my_pe();
-  int i, dst, task;
-
-  /* The algorithm is written with two-sided communications. We are using atomic puts instead. */
-  shmem_fence();
-  shmem_barrier_all();
-  //start_time = start_synchronization();
-
-  for( task = 0 ; task < size ; task++ ){
-    if( task != root ) {
-
-        start_time = wtime();
-      /* First step: one-to-one communications */
-      
-      if( root == rank ){
-	for( i = 0 ; i < M ; i++ ){
-	  shmem_int_atomic_add( ack, 1, task );
-      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
-      *ack = 0;
-	}
-      } else {
-	if( task == rank ){
-	  for( i = 0 ; i < M ; i++ ){
-          shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
-          *ack = 0;
-          shmem_int_atomic_add( ack, 1, root );
-	  }
-	}
-      }
-      
-      t1 = wtime();
-      rt1 = ( t1 - start_time ) / M;
-      
-      /* Second step: reductions, with ack. */
-      
-      shmem_barrier_all();
-      
-      /* Initial broadcast / ack: assumption consistency check */
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-    shmem_short_and_reduce( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
-#else
-    shmem_short_and_to_all( (short*)target, (short*)source, count/sizeof( short ), root, 0, size, (short*)pwrk, (long*)psync );
-#endif
-      if( root == rank ){
-	shmem_int_atomic_add( ack, 1, task );
-      } else {
-	if( task == rank ) {
-        shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
-        *ack = 0;
-	}
-      }
-  
-      /* Mesurements */
-      
-      t1 = wtime();
-
-      for( i = 0 ; i < M ; i++ ){
-#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
-	shmem_short_and_reduce( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
-#else
-	shmem_short_and_to_all( (short*)target, (short*)source, count/sizeof( short ), root, 0, size, (short*)pwrk, (long*)psync );
-#endif
-	if( root == rank ){
-	  shmem_int_atomic_add( ack, 1, task );
-	} else {
-	  if( task == rank ) {
-        shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
-        *ack = 0;
-	  }
-	}
-      }
-      t2 = wtime();
-      
-      if( rank == task || root == rank ){ /* the root will keep the last time taken */
-          rt2 = (t2 - t1)/M;
-          mytime = rt2 - rt1/2;
-      }
+    /* Measure the time to perform a barrier */
+    start_time = wtime();
+    for( i = 0 ; i < iterations ; i++ ){
+        shmem_barrier_all();
     }
+    end_time = wtime();
+    btime = end_time - start_time;
 
-  }
+    /* Measure */
 
-  return mytime;
+    shmem_barrier_all();
+
+    for( i = 0 ; i < iterations ; i++ ){
+        start_time = wtime();
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
+#else
+        routine( (short*)target, (short*)source, count/sizeof( short ), 0, 0, size, (short*)pwrk, (long*)psync );
+#endif
+        shmem_barrier_all();
+        end_time = wtime();
+        ttime += (end_time - start_time );
+    }
+    end_time = stop_synchronization();
+
+    return  ( ttime - btime ) / iterations;
 }
+
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_reduce_synchro( int count, void (*routine)( team, short, const short*, size_t) ){
+#else
+double erusaem_shmem_reduce_synchro( int count, void (*routine)( short*, const short*, int, int, int, int, short*, long* ) ){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0;
+    start_time = start_synchronization();
+
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+    routine( SHMEM_TEAM_WORLD, (short*)target, (short*)source, count/sizeof( short ) );
+#else
+    routine( (short*)target, (short*)source, count/sizeof( short ), 0, 0, size, (short*)pwrk, (long*)psync );
+#endif
+    
+    end_time = stop_synchronization();
+    return  ( end_time - start_time);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Reduce_And_Consecutive( int count, int iterations ){
+    tini_shmem_reduce( count );
+ }
+  
+void finalize_Shmem_Reduce_And_Consecutive( int count, int iterations ){
+    ezilanif_shmem_reduce( count );
+}
+
+/* TODO not necesarily on SHMEM_TEAM_WORLD */
+/* TODO other operations */
+
+double measure_Shmem_Reduce_And_Consecutive( int count, int iterations ){
+    return erusaem_shmem_reduce_consecutive( count, iterations, &shmem_short_and_to_all );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Reduce_And_Barrier( int count, int iterations ){
+    tini_shmem_reduce( count );
+ }
+  
+void finalize_Shmem_Reduce_And_Barrier( int count, int iterations ){
+    ezilanif_shmem_reduce( count );
+}
+
+double measure_Shmem_Reduce_And_Barrier( int count, int iterations ){
+    return erusaem_shmem_reduce_barrier( count, iterations, &shmem_short_and_to_all );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Reduce_And_Synchro( int count ){
+    tini_shmem_reduce( count );
+ }
+  
+void finalize_Shmem_Reduce_And_Synchro( int count ){
+    ezilanif_shmem_reduce( count );
+}
+
+double measure_Shmem_Reduce_And_Synchro( int count ){
+    return erusaem_shmem_reduce_synchro( count, &shmem_short_and_to_all );
+}
+
+/*---------------------------------------------------------------------------*/
+/*                              Collect                                      */
+/*---------------------------------------------------------------------------*/
+
+void tini_shmem_collect( int count ){
+  size = shmem_n_pes();
+  source = (char*) shmem_malloc( count );
+  target = (char*) shmem_malloc( count*size );
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
+#endif
+  init_synchronization();
+}
+
+void ezilanif_shmem_collect( int count ){
+  shmem_free( source );
+  shmem_free( target );
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+  free( psync );
+#endif
+}
+ 
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_collect_consecutive( int count, int iterations, void (*routine)( team, void*, const void**, size_t) ){
+#else
+double erusaem_shmem_collect_consecutive( int count, int iterations, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0;
+    start_time = start_synchronization();
+
+    for( i = 0 ; i < iterations ; i++ ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, count );
+#else
+        routine( (void*)target, (void*)source, count/4, 0, 0, size, (long*)psync );
+#endif
+    }
+    
+    end_time = stop_synchronization();
+    return  ( end_time - start_time) / iterations; 
+}
+    
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)( team, void*, const void**, size_t) ){
+#else
+double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0, btime, ttime;
+    
+    /* Warm-up */
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, count );
+#else
+        routine( (void*)target, (void*)source, count/4, 0, 0, size, (long*)psync );
+#endif
+
+    start_time = start_synchronization();
+
+    /* Measure the time to perform a barrier */
+    start_time = wtime();
+    for( i = 0 ; i < iterations ; i++ ){
+        shmem_barrier_all();
+    }
+    end_time = wtime();
+    btime = end_time - start_time;
+
+    /* Measure */
+
+    shmem_barrier_all();
+
+    for( i = 0 ; i < iterations ; i++ ){
+        start_time = wtime();
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+        routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, count );
+#else
+        routine( (void*)target, (void*)source, count/4, 0, 0, size, (long*)psync );
+#endif
+        shmem_barrier_all();
+        end_time = wtime();
+        ttime += (end_time - start_time );
+    }
+    end_time = stop_synchronization();
+
+    return  ( ttime - btime ) / iterations;
+}
+
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+double erusaem_shmem_collect_synchro( int count, void (*routine)( team, void*, const void**, size_t) ){
+#else
+double erusaem_shmem_collect_synchro( int count, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
+#endif
+    int i;
+    double start_time = 1.0, end_time = 0.0;
+    start_time = start_synchronization();
+    
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION >= 5
+    routine( SHMEM_TEAM_WORLD, (void*)target, (void*)source, count );
+#else
+    routine( (void*)target, (void*)source, count/4, 0, 0, size, (long*)psync );
+#endif
+    
+    end_time = stop_synchronization();
+    return  ( end_time - start_time);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Collect_Consecutive( int count, int iterations ){
+    tini_shmem_collect( count );
+ }
+  
+void finalize_Shmem_Collect_Consecutive( int count, int iterations ){
+    ezilanif_shmem_collect( count );
+}
+
+double measure_Shmem_Collect_Consecutive( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_collect32 );
+#else
+    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_collectmem );
+#endif
+}
+ 
+void init_Shmem_Fcollect_Consecutive( int count, int iterations ){
+    tini_shmem_collect( count );
+ }
+  
+void finalize_Shmem_Fcollect_Consecutive( int count, int iterations ){
+    ezilanif_shmem_collect( count );
+}
+ 
+double measure_Shmem_Fcollect_Consecutive( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_fcollect32 );
+#else
+    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_fcollectmem );
+#endif
+}
+ 
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Collect_Barrier( int count, int iterations ){
+    tini_shmem_collect( count );
+ }
+  
+void finalize_Shmem_Collect_Barrier( int count, int iterations ){
+    ezilanif_shmem_collect( count );
+}
+
+double measure_Shmem_Collect_Barrier( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+    return erusaem_shmem_collect_barrier( count, iterations, &shmem_collect32 );
+#else
+    return erusaem_shmem_collect_barrier( count, iterations, &shmem_collectmem );
+#endif
+}
+
+void init_Shmem_Fcollect_Barrier( int count, int iterations ){
+    tini_shmem_collect( count );
+ }
+  
+void finalize_Shmem_Fcollect_Barrier( int count, int iterations ){
+    ezilanif_shmem_collect( count );
+}
+
+double measure_Shmem_Fcollect_Barrier( int count, int iterations ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+    return erusaem_shmem_collect_barrier( count, iterations, &shmem_fcollect32 );
+#else
+    return erusaem_shmem_collect_barrier( count, iterations, &shmem_fcollectmem );
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Collect_Synchro( int count ){
+    tini_shmem_collect( count );
+ }
+  
+void finalize_Shmem_Collect_Synchro( int count ){
+    ezilanif_shmem_collect( count );
+}
+
+double measure_Shmem_Collect_Synchro( int count ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+    return erusaem_shmem_collect_synchro( count, &shmem_collect32 );
+#else
+    return erusaem_shmem_collect_synchro( count, &shmem_collectmem );
+#endif
+}
+
+void init_Shmem_Fcollect_Synchro( int count ){
+    tini_shmem_collect( count );
+ }
+  
+void finalize_Shmem_Fcollect_Synchro( int count ){
+    ezilanif_shmem_collect( count );
+}
+
+double measure_Shmem_Fcollect_Synchro( int count ){
+#if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
+    return erusaem_shmem_collect_synchro( count, &shmem_fcollect32 );
+#else
+    return erusaem_shmem_collect_synchro( count, &shmem_fcollectmem );
+#endif
+}
+
 
 /*---------------------------------------------------------------------------*/
 
