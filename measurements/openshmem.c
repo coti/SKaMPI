@@ -181,6 +181,66 @@ double measure_Shmem_Quiet_Put( int count, int iterations ){
     return ttime/iterations;
 }
 
+/*---------------------------------------------------------------------------*/
+/*                                     Fence                                 */
+/*---------------------------------------------------------------------------*/
+
+/* This function simply measures the time taken by a shmem_fence call */
+
+void init_Shmem_Fence( int iterations ){
+    init_synchronization();
+}
+
+double measure_Shmem_Fence( int iterations ){
+    double start_time = 1.0, end_time = 0.0;
+    int i;
+    start_time = start_synchronization();
+    for( i = 0 ; i < iterations ; i++ ) {
+        shmem_fence();
+    }
+    end_time = stop_synchronization();
+    
+    return (end_time - start_time)/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/* shmem_fence does not guarantee delivery of the previously posted communications
+   but it guarantees they will be delivered in order. Might have a different cost 
+   when posted after a communication (such as a put)
+*/
+
+void init_Shmem_Fence_Put( int count, int iterations ){
+    init_synchronization();
+    target = (char*) shmalloc( count );
+}
+
+void finalize_Shmem_Fence_Put( int count, int iterations ){
+    shfree( target );
+    target = NULL;
+}
+
+double measure_Shmem_Fence_Put( int count, int iterations ){
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
+    char* sym;
+    int i, rank, size;
+    rank = shmem_my_pe();
+    size = shmem_n_pes();
+    
+    start_time = start_synchronization();
+    for( i = 0 ; i < iterations ; i++ ) {
+
+        shmem_char_put( target, get_send_buffer(), count, (rank+1)%size );
+        
+        t1 = wtime();
+        shmem_fence();
+        t2 = wtime();
+        ttime = ( t2 - t1 );
+    }
+    end_time = stop_synchronization();
+    
+    return ttime/iterations;
+}
 
 /*---------------------------------------------------------------------------*/
 
