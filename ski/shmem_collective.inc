@@ -126,3 +126,17 @@ end measurement
 begin measurement "Shmem_Barrier_all"
   measure comm_pt2pt : Shmem_Barrier()
 end measurement
+
+begin measurement "Shmem_Barrier_all-Consecutive"
+  measure comm_pt2pt : Shmem_Barrier_Consecutive( 10 )
+end measurement
+
+## Sync
+
+begin measurement "Shmem_Sync_all"
+  measure comm_pt2pt : Shmem_Sync()
+end measurement
+
+begin measurement "Shmem_Sync_all-Consecutive"
+  measure comm_pt2pt : Shmem_Sync_Consecutive( 10 )
+end measurement

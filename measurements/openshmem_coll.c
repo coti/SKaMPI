@@ -916,6 +916,60 @@ double measure_Shmem_Barrier(){
   return end_time - start_time;
 }
 
+/*---------------------------------------------------------------------------*/
+
+ void init_Shmem_Barrier_Consecutive( int iterations ) {
+  init_synchronization();
+}
+
+double measure_Shmem_Barrier_Consecutive(int iterations ){
+  double start_time, end_time;
+  int i;
+
+  start_time = start_synchronization();
+  for( i = 0 ; i < iterations ; i++ ) {
+      shmem_barrier_all();
+  }
+  end_time = stop_synchronization();
+  return ( end_time - start_time ) / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+/*                               Sync                                        */
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Sync() {
+  init_synchronization();
+}
+
+double measure_Shmem_Sync(){
+  double start_time, end_time;
+
+  start_time = start_synchronization();
+  shmem_sync_all();
+  end_time = stop_synchronization();
+  return end_time - start_time;
+}
+
+/*---------------------------------------------------------------------------*/
+
+ void init_Shmem_Sync_Consecutive( int iterations ) {
+  init_synchronization();
+}
+
+double measure_Shmem_Sync_Consecutive(int iterations ){
+  double start_time, end_time;
+  int i;
+
+  start_time = start_synchronization();
+  for( i = 0 ; i < iterations ; i++ ) {
+      shmem_sync_all();
+  }
+  end_time = stop_synchronization();
+  return ( end_time - start_time ) / iterations;
+}
+
+
 
 /*---------------------------------------------------------------------------*/
 #pragma weak end_skampi_extensions
