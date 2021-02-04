@@ -275,6 +275,35 @@ double measure_Shmem_Wait_Until( int iterations ){
 
 /*---------------------------------------------------------------------------*/
 
+/* Just test the value */
+
+void init_Shmem_Test( int iterations ){
+    target = (char*) shmalloc( sizeof( int ) );
+    init_synchronization();
+}
+
+void finalize_Shmem_Test( int iterations ){
+    shfree( target );
+    target = NULL;
+}
+
+double measure_Shmem_Test( int iterations ){
+    double start_time = 1.0, end_time = 0.0;
+    int i;
+    int* a = (int*) target;
+    *a = 1;
+    
+    start_time = start_synchronization();
+    for( i = 0 ; i < iterations ; i++ ) {
+        shmem_int_test( a, SHMEM_CMP_EQ, 1 );
+    }
+    end_time = stop_synchronization();
+    
+    return (end_time - start_time)/iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
 #pragma weak end_skampi_extensions
 
 #endif // SKAMPI_OPENSHMEM
