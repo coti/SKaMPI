@@ -121,3 +121,8 @@ begin measurement "Shmem_Reduce_Alltoalls_All-Synchro"
   od
 end measurement
 
+## Barrier
+
+begin measurement "Shmem_Barrier_all"
+  measure comm_pt2pt : Shmem_Barrier()
+end measurement

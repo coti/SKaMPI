@@ -898,6 +898,24 @@ double measure_Shmem_Alltoalls_Synchro( int count ){
     return erusaem_shmem_alltoalls_synchro( count, &shmem_alltoallsmem );
 #endif
 }
+ 
+/*---------------------------------------------------------------------------*/
+/*                              Barrier                                      */
+/*---------------------------------------------------------------------------*/
+
+void init_Shmem_Barrier() {
+  init_synchronization();
+}
+
+double measure_Shmem_Barrier(){
+  double start_time, end_time;
+
+  start_time = start_synchronization();
+  shmem_barrier_all();
+  end_time = stop_synchronization();
+  return end_time - start_time;
+}
+
 
 /*---------------------------------------------------------------------------*/
 #pragma weak end_skampi_extensions
