@@ -131,6 +131,14 @@ begin measurement "Shmem_Barrier_all-Consecutive"
   measure comm_pt2pt : Shmem_Barrier_Consecutive( 10 )
 end measurement
 
+begin measurement "Shmem_Barrier_Half"
+  measure comm_pt2pt : Shmem_Barrier_Half()
+end measurement
+
+begin measurement "Shmem_Barrier_Half-Consecutive"
+  measure comm_pt2pt : Shmem_Barrier_Half_Consecutive( 10 )
+end measurement
+
 ## Sync
 
 begin measurement "Shmem_Sync_all"
@@ -139,4 +147,12 @@ end measurement
 
 begin measurement "Shmem_Sync_all-Consecutive"
   measure comm_pt2pt : Shmem_Sync_Consecutive( 10 )
+end measurement
+
+begin measurement "Shmem_Sync_Half"
+  measure comm_pt2pt : Shmem_Sync_Half()
+end measurement
+
+begin measurement "Shmem_Sync_Half-Consecutive"
+  measure comm_pt2pt : Shmem_Sync_Half_Consecutive( 10 )
 end measurement
