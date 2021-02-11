@@ -44,17 +44,41 @@ AM_PROG_CC_C_O
 AC_PROG_YACC
 AC_PROG_LEX
 
-# Check for MPI
-ACX_MPI([], [AC_MSG_ERROR([Cannot find an MPI compiler.])])
-CC="$MPICC"
+# Enable MPI or not (default: yes)
+AC_ARG_ENABLE([mpi],
+    AS_HELP_STRING([--disable-mpi], [Disable MPI (measurements and infrastructure)]))
 
-# Enable OpenSHMEM or not
-ENABLE_OPENSHMEM=0 # default
+AS_IF([test "x$enable_mpi" != "xno"], [
+  CFLAGS+=" -DSKAMPI_MPI"
+  AM_CONDITIONAL(ENABLE_MPI, true)
+  # Check for MPI
+  ACX_MPI([], [AC_MSG_ERROR([Cannot find an MPI compiler.])])
+  CC="$MPICC"
+],[
+  AM_CONDITIONAL(ENABLE_MPI, false)
+])
+
 AC_ARG_ENABLE([openshmem],
-	AS_HELP_STRING([--enable-openshmem], [Enable OpenSHMEM operations [default=no]]),
-	[ AM_CONDITIONAL(ENABLE_OPENSHMEM, true)
-       	  CFLAGS+=" -DSKAMPI_OPENSHMEM "],
-	[ AM_CONDITIONAL(ENABLE_OPENSHMEM, false) ] )
+    AS_HELP_STRING([--enable-openshmem], [Enable OpenSHMEM operations [default=no]]))
+
+AS_IF([test "x$enable_openshmem" = xyes],[
+  AC_MSG_NOTICE([OPENSHMEM IS ENABLED])
+  CFLAGS+=" -DSKAMPI_OPENSHMEM "
+  AM_CONDITIONAL(ENABLE_OPENSHMEM, true)
+  # Check for OpenSHMEM (TODO)
+  AS_IF([test "x$enable_mpi" = "xno"], [
+    CC="$OSHCC"
+  ])
+],[
+  AM_CONDITIONAL(ENABLE_OPENSHMEM, false)
+])
+
+# You need at least one of them
+if test "x$enable_mpi" != xyes ; then
+   if test "x$enable_openshmem" != xyes ; then
+      AC_MSG_ERROR([You need at least MPI or OpenSHMEM.])
+   fi
+fi
 
 # Use PAPI or not
 ENABLE_PAPI=0 # default
@@ -82,3 +106,23 @@ AC_CONFIG_FILES([Makefile])
 
 # Generate the output
 AC_OUTPUT
+
+# Print a recap
+AC_MSG_NOTICE([ *** *** *** *** *** *** *** ])
+AC_MSG_NOTICE([ *** Configuration recap *** ])
+AS_IF([test "x$enable_mpi" != "xno"], [
+  AC_MSG_NOTICE([ * MPI is       ENABLED])
+],[
+  AC_MSG_NOTICE([ * MPI is       DISABLED])
+])
+AS_IF([test "x$enable_openshmem" = xyes],[
+  AC_MSG_NOTICE([ * OpenSHMEM is ENABLED])
+],[
+  AC_MSG_NOTICE([ * OpenSHMEM is DISABLED])
+])
+AS_IF([test "x$enable_papi" = xyes],[
+  AC_MSG_NOTICE([ * PAPI is      ENABLED])
+],[
+  AC_MSG_NOTICE([ * PAPI is      DISABLED])
+])
+AC_MSG_NOTICE([ *** *** *** *** *** *** *** ])

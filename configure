@@ -592,6 +592,8 @@ ENABLE_OPENSHMEM_FALSE
 ENABLE_OPENSHMEM_TRUE
 MPILIBS
 MPICC
+ENABLE_MPI_FALSE
+ENABLE_MPI_TRUE
 LEXLIB
 LEX_OUTPUT_ROOT
 LEX
@@ -684,6 +686,7 @@ ac_user_opts='
 enable_option_checking
 enable_silent_rules
 enable_dependency_tracking
+enable_mpi
 enable_openshmem
 enable_papi
 with_papi
@@ -1319,6 +1322,7 @@ Optional Features:
                           do not reject slow dependency extractors
   --disable-dependency-tracking
                           speeds up one-time build
+  --disable-mpi           Disable MPI (measurements and infrastructure)
   --enable-openshmem      Enable OpenSHMEM operations [default=no]
   --enable-papi           Use PAPI for measurements [default=no]
 
@@ -3818,7 +3822,25 @@ rm -f conftest.l $LEX_OUTPUT_ROOT.c
 
 fi
 
-# Check for MPI
+# Enable MPI or not (default: yes)
+# Check whether --enable-mpi was given.
+if test "${enable_mpi+set}" = set; then :
+  enableval=$enable_mpi;
+fi
+
+
+if test "x$enable_mpi" != "xno"; then :
+
+  CFLAGS+=" -DSKAMPI_MPI"
+   if true; then
+  ENABLE_MPI_TRUE=
+  ENABLE_MPI_FALSE='#'
+else
+  ENABLE_MPI_TRUE='#'
+  ENABLE_MPI_FALSE=
+fi
+
+  # Check for MPI
 
 
 
@@ -3999,13 +4021,33 @@ $as_echo "#define HAVE_MPI 1" >>confdefs.h
         :
 fi
 
-CC="$MPICC"
+  CC="$MPICC"
 
-# Enable OpenSHMEM or not
-ENABLE_OPENSHMEM=0 # default
+else
+
+   if false; then
+  ENABLE_MPI_TRUE=
+  ENABLE_MPI_FALSE='#'
+else
+  ENABLE_MPI_TRUE='#'
+  ENABLE_MPI_FALSE=
+fi
+
+
+fi
+
 # Check whether --enable-openshmem was given.
 if test "${enable_openshmem+set}" = set; then :
-  enableval=$enable_openshmem;   if true; then
+  enableval=$enable_openshmem;
+fi
+
+
+if test "x$enable_openshmem" = xyes; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: OPENSHMEM IS ENABLED" >&5
+$as_echo "$as_me: OPENSHMEM IS ENABLED" >&6;}
+  CFLAGS+=" -DSKAMPI_OPENSHMEM "
+   if true; then
   ENABLE_OPENSHMEM_TRUE=
   ENABLE_OPENSHMEM_FALSE='#'
 else
@@ -4013,9 +4055,16 @@ else
   ENABLE_OPENSHMEM_FALSE=
 fi
 
-       	  CFLAGS+=" -DSKAMPI_OPENSHMEM "
+  # Check for OpenSHMEM (TODO)
+  if test "x$enable_mpi" = "xno"; then :
+
+    CC="$OSHCC"
+
+fi
+
 else
-    if false; then
+
+   if false; then
   ENABLE_OPENSHMEM_TRUE=
   ENABLE_OPENSHMEM_FALSE='#'
 else
@@ -4023,8 +4072,15 @@ else
   ENABLE_OPENSHMEM_FALSE=
 fi
 
+
 fi
 
+# You need at least one of them
+if test "x$enable_mpi" != xyes ; then
+   if test "x$enable_openshmem" != xyes ; then
+      as_fn_error $? "You need at least MPI or OpenSHMEM." "$LINENO" 5
+   fi
+fi
 
 # Use PAPI or not
 ENABLE_PAPI=0 # default
@@ -4236,6 +4292,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MPI_TRUE}" && test -z "${ENABLE_MPI_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MPI\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MPI_TRUE}" && test -z "${ENABLE_MPI_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MPI\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_OPENSHMEM_TRUE}" && test -z "${ENABLE_OPENSHMEM_FALSE}"; then
@@ -5388,3 +5452,44 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
+
+# Print a recap
+{ $as_echo "$as_me:${as_lineno-$LINENO}:  *** *** *** *** *** *** *** " >&5
+$as_echo "$as_me:  *** *** *** *** *** *** *** " >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}:  *** Configuration recap *** " >&5
+$as_echo "$as_me:  *** Configuration recap *** " >&6;}
+if test "x$enable_mpi" != "xno"; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  * MPI is       ENABLED" >&5
+$as_echo "$as_me:  * MPI is       ENABLED" >&6;}
+
+else
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  * MPI is       DISABLED" >&5
+$as_echo "$as_me:  * MPI is       DISABLED" >&6;}
+
+fi
+if test "x$enable_openshmem" = xyes; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  * OpenSHMEM is ENABLED" >&5
+$as_echo "$as_me:  * OpenSHMEM is ENABLED" >&6;}
+
+else
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  * OpenSHMEM is DISABLED" >&5
+$as_echo "$as_me:  * OpenSHMEM is DISABLED" >&6;}
+
+fi
+if test "x$enable_papi" = xyes; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  * PAPI is      ENABLED" >&5
+$as_echo "$as_me:  * PAPI is      ENABLED" >&6;}
+
+else
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  * PAPI is      DISABLED" >&5
+$as_echo "$as_me:  * PAPI is      DISABLED" >&6;}
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}:  *** *** *** *** *** *** *** " >&5
+$as_echo "$as_me:  *** *** *** *** *** *** *** " >&6;}
