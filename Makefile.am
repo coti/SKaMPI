@@ -32,8 +32,8 @@ skampi_LDADD += -lpapi
 endif
 
 
-m.c: $(MEASUREMENTS) extract.pl
-	./extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=measurements > m.c
+m.c: $(MEASUREMENTS) $(top_srcdir)/extract.pl
+	$(top_srcdir)/extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=$(top_srcdir)/measurements > $(top_srcdir)/m.c
 
-lex.yy.c: lexer.lex
-	flex  lexer.lex
+lex.yy.c: $(top_srcdir)/lexer.lex
+	$(LEX) $(LFLAGS) $(AM_LFLAGS) -o$@ $<
