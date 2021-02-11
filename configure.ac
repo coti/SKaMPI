@@ -62,10 +62,10 @@ AC_ARG_ENABLE([openshmem],
     AS_HELP_STRING([--enable-openshmem], [Enable OpenSHMEM operations [default=no]]))
 
 AS_IF([test "x$enable_openshmem" = xyes],[
-  AC_MSG_NOTICE([OPENSHMEM IS ENABLED])
   CFLAGS+=" -DSKAMPI_OPENSHMEM "
   AM_CONDITIONAL(ENABLE_OPENSHMEM, true)
-  # Check for OpenSHMEM (TODO)
+  # Check for OpenSHMEM
+  ACX_OPENSHMEM([], [AC_MSG_ERROR([Cannot find an OpenSHMEM compiler.])])
   AS_IF([test "x$enable_mpi" = "xno"], [
     CC="$OSHCC"
   ])
