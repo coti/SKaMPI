@@ -97,7 +97,9 @@ int main(int argc, char* argv[])
   time_t t1, t2;
 
   set_progname(argv[0]);
+#ifdef SKAMPI_MPI
   MPI_Init(&argc, &argv);
+#endif
 #ifdef SKAMPI_OPENSHMEM
   shmem_init();
 #endif
@@ -179,6 +181,7 @@ int main(int argc, char* argv[])
 
   }
 
+#ifdef SKAMPI_MPI
   MPI_Bcast(&debug_flags, 1, MPI_INT, get_output_rank(), MPI_COMM_WORLD); /* @@@ optimize!!! @@@ */
   MPI_Bcast(&dry_run, 1, MPI_INT, get_output_rank(), MPI_COMM_WORLD);
   MPI_Bcast(&input_filename_len, 1, MPI_INT, get_output_rank(), MPI_COMM_WORLD); 
@@ -186,7 +189,49 @@ int main(int argc, char* argv[])
     input_filename = skampi_malloc_chars(input_filename_len + 1);
   }
   MPI_Bcast(input_filename, input_filename_len+1, MPI_CHAR, get_output_rank(), MPI_COMM_WORLD);
+
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
+
+  int32_t* gl_debug;
+  long* psync;
+  int used_len;
+  char* used_filename;
   
+  psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  gl_debug = shmalloc( 6*sizeof( int32_t ));
+  gl_debug[3] =  debug_flags;        /* source in 3, result in 0 */
+  gl_debug[4] =  dry_run;            /* source in 4, result in 1 */
+  gl_debug[4] =  input_filename_len; /* source in 5, result in 2 */
+
+  shmem_broadcast32( gl_debug, gl_debug+3, 3, get_output_rank(), 0, 0, get_measurement_size(), psync );
+  shmem_quiet();
+  debug_flags        = gl_debug[0];
+  dry_run            = gl_debug[1];
+  input_filename_len = gl_debug[2];
+
+  /* round to 4 bytes */
+  used_len = input_filename_len + ( input_filename_len%4 );
+  used_filename = skampi_malloc_chars( used_len + 1 );
+  if (get_my_global_rank() == get_output_rank()) {
+      memcpy( used_filename, input_filename, input_filename_len+1 );
+  }
+  if (get_my_global_rank() != get_output_rank()) {
+    input_filename = skampi_malloc_chars( input_filename_len + 1 );
+  }
+  
+  shmem_broadcast32( used_filename, used_filename, used_len/4, get_output_rank(), 0, 0, get_measurement_size(), psync );
+
+  memcpy( input_filename, used_filename, input_filename_len+1 );
+  input_filename[input_filename_len] = '\0';
+  
+  free( used_filename );
+  shfree( psync );
+  shfree( gl_debug );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
   init_logging();
   init_debugging();
   init_synchronization_module();
