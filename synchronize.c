@@ -39,6 +39,12 @@ double *ping_pong_min_time; /* ping_pong_min_time[i] is the minimum time of one 
 double *tds;                /* tds[i] is the time difference between the 
 			       current node and global node i */
 
+#ifndef SKAMPI_MPI
+#ifndef MPI_MAX_PROCESSOR_NAME
+#define MPI_MAX_PROCESSOR_NAME 256
+#endif
+#include <string.h>
+#endif
 
 enum {
   Number_ping_pongs = 100,
@@ -50,6 +56,14 @@ bool mpi_wtime_is_global;
 extern int wait_till(double time_stamp, double *last_time_stamp);
 extern double should_wait_till(int counter, double interval, double offset);
 
+void get_processor_name( char* name, int* namelen ){
+#ifdef SKAMPI_MPI
+    MPI_Get_processor_name( name, &namelen );
+#else
+    gethostname( name, MPI_MAX_PROCESSOR_NAME ); 
+    *namelen = strlen( name );
+#endif
+}
 
 void init_synchronization_module(void)
 {
@@ -90,7 +104,7 @@ void print_global_time_differences(void)
     pids = skampi_malloc_ints(get_global_size());
   }
 
-  MPI_Get_processor_name(my_name, &name_len);
+  get_processor_name( my_name, &name_len );
   my_name[name_len] = '\0';
   pid = getpid();
 

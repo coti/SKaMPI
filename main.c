@@ -51,6 +51,8 @@ extern void yyparse(void);
 extern void init_lexer(char *infilename);
 extern void finalize_lexer(void);
 
+extern int* global_ranks;
+
 bool syntax_check_only;
 bool parser_result;
 int inside_measurement_block;
@@ -220,9 +222,12 @@ int main(int argc, char* argv[])
   /*  print_symboltable(); */
   /* print_global_time_differences();  @@ */
   finish_logging();
+  
 #ifdef SKAMPI_OPENSHMEM
   shmem_finalize();
 #endif
+#ifdef SKAMPI_MPI
   MPI_Finalize();
+#endif
   return 0;
 }

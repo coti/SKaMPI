@@ -21,7 +21,9 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif // SKAMPI_MPI
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -49,12 +51,33 @@ static int *global_ranks;
 void update_measurement_comm(MPI_Comm comm) 
 {
   measurement_comm = comm;
+#ifdef SKAMPI_MPI
   MPI_Comm_rank(measurement_comm, &measurement_rank);
   MPI_Comm_size(measurement_comm, &measurement_size);
   
   MPI_Allgather(&global_rank, 1, MPI_INT, 
 		global_ranks, 1, MPI_INT, measurement_comm);
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  
+  int* rank;
+  long* psync;
 
+  measurement_rank = shmem_my_pe();
+  measurement_size = shmem_n_pes();
+
+  psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  rank = shmalloc( sizeof( int ) );
+  *rank = measurement_rank;
+  
+  shmem_collect32( global_ranks, rank, 1, 0, 0, measurement_size, psync );
+  shfree( psync );
+  shfree( rank );
+
+#else // SKAMPI_OPENSHMEM
+#warning "update_measurement_comm doing nothing"
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 }
 
 int get_measurement_rank(void)
@@ -76,9 +99,19 @@ MPI_Comm get_measurement_comm(void)
 
 void init_globals(void)
 {
-  MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &global_size);
-  global_ranks = skampi_malloc_ints(global_size);
+#ifdef SKAMPI_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &global_size);
+    global_ranks = skampi_malloc_ints(global_size);
+#else// SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+    global_rank = shmem_my_pe();
+    global_size = shmem_n_pes();
+    global_ranks = shmalloc( measurement_size );
+#else // SKAMPI_OPENSHMEM
+#warning "update_measurement_comm doing nothing"
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 }
 
 int get_my_global_rank(void)
@@ -318,6 +351,7 @@ void *_mpi_malloc(MPI_Aint size, const char *_file, unsigned int _line)
 		      (int) size, _file, _line );
   }
 
+#ifdef SKAMPI_MPI
 #ifdef USE_MPI_ALLOC_MEM
   if (use_mpi_memory_allocation) {
     errcode = MPI_Alloc_mem( size, get_mpi_alloc_mem_info(), &baseptr );
@@ -335,7 +369,8 @@ void *_mpi_malloc(MPI_Aint size, const char *_file, unsigned int _line)
 			size, errstring, errclass, _file, _line );
     }
   } else {
-#endif
+#endif // USE_MPI_ALLOC_MEM
+#endif // SKAMPI_MPI
     baseptr = malloc(size);
     if (baseptr == NULL) {
       error_with_abort( MPI_ERR_ARG,
@@ -344,9 +379,11 @@ void *_mpi_malloc(MPI_Aint size, const char *_file, unsigned int _line)
 			"\nmpi_malloc: Caller in file %s at line %u\n",  
 			(size_t) size, strerror(errno), errno, _file, _line );
     }
+#ifdef SKAMPI_MPI
 #ifdef USE_MPI_ALLOC_MEM
   }
-#endif
+#endif // USE_MPI_ALLOC_MEM
+#endif // SKAMPI_MPI
 
   return baseptr;
 }
@@ -429,4 +466,14 @@ void mpi_free(void *base)
 #else
   free(base);
 #endif
+}
+
+void finalize_ranks(){
+#ifdef SKAMPI_MPI
+  free( global_ranks );
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  shfree( global_ranks );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 }
