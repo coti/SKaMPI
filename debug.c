@@ -20,8 +20,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <mpi.h>
 #include <unistd.h>
+#ifdef SKAMPI_MPI
+#include <mpi.h>
+#else
+#include "shmem_interface.h"
+#endif
 
 #include "misc.h"
 #include "private_misc.h"

@@ -115,6 +115,7 @@ static char *align_ptr(char *p, int a)
   return p + alignment_fix(p, a);
 }
 
+#ifdef SKAMPI_MPI
 MPI_Aint get_extent(int count, MPI_Datatype datatype)
 {
   MPI_Aint extent;
@@ -128,6 +129,7 @@ MPI_Aint get_extent(int count, MPI_Datatype datatype)
   return count*extent;   /* calculation is probably too simple?! */
                          /* what about holes, offsets?! @@@ */
 }
+#endif // SKAMPI_MPI
 
 /* if (MPI_VERSION >= 1) && (MPI_SUBVERSION >= 2)  */
 #ifdef USE_MPI_IO

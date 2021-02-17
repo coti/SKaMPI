@@ -18,6 +18,10 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
+#ifndef SKAMPI_MPI
+#include "shmem_interface.h"
+#endif // SKAMPI_MPI
+
 
 enum {
   True = 1,
@@ -62,8 +66,10 @@ int round_double_to_multipleof(double f, int m);
 extern int skampi_buffer_size; /* in bytes */
 extern int skampi_cache_size;  /* in bytes */
 
+#ifdef SKAMPI_MPI
 extern MPI_Aint get_extent(int count, MPI_Datatype datatype);
 extern MPI_Aint get_true_extent(int count, MPI_Datatype datatype);
+#endif // SKAMPI_MPI
 
 /*---------------------------------------------------------------------------*/
 
@@ -89,9 +95,11 @@ double      *_mpi_malloc_doubles(int n, const char *_file, unsigned int _line);
 int         *_mpi_malloc_ints(int n, const char *_file, unsigned int _line);
 char        *_mpi_malloc_chars(int n, const char *_file, unsigned int _line);
 char       **_mpi_malloc_charps(int n, const char *_file, unsigned int _line);
+#ifdef SKAMPI_MPI
 MPI_Request *_mpi_malloc_reqs(int n, const char *_file, unsigned int _line);
 MPI_Offset  *_mpi_malloc_offsets(int n, const char *_file, unsigned int _line);
 MPI_Status  *_mpi_malloc_statuses(int n, const char *_file, unsigned int _line);
+#endif // SKAMPI_MPI
 
 void mpi_free(void *);
 
@@ -109,6 +117,8 @@ double      *_skampi_malloc_doubles(int n, const char *_file, unsigned int _line
 int         *_skampi_malloc_ints(int n, const char *_file, unsigned int _line);
 char        *_skampi_malloc_chars(int n, const char *_file, unsigned int _line);
 char       **_skampi_malloc_charps(int n, const char *_file, unsigned int _line);
+#ifdef SKAMPI_MPI
 MPI_Request *_skampi_malloc_reqs(int n, const char *_file, unsigned int _line);
 MPI_Offset  *_skampi_malloc_offsets(int n, const char *_file, unsigned int _line);
 MPI_Status  *_skampi_malloc_statuses(int n, const char *_file, unsigned int _line);
+#endif // SKAMPI_MPI

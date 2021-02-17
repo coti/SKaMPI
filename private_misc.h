@@ -23,7 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 #ifndef SKAMPI_MPI
 /* useful to avoid breaking some interfaces */
+#ifndef MPI_Comm
 #define MPI_Comm int
+#endif
 #endif // SKAMPI_MPI
 
 void init_globals(void);

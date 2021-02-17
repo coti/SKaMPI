@@ -19,8 +19,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 #include <stdio.h>
-#include <mpi.h>
 #include <assert.h>
+#ifdef SKAMPI_MPI
+#include <mpi.h>
+#else
+#include "shmem_interface.h"
+#endif
 
 #include "misc.h"
 #include "debug.h"
@@ -139,8 +143,36 @@ void print_global_acc_info(void)
   single_times[5] = acc_wait_time;
   single_times[6] = acc_sync_time;
 
+#ifdef SKAMPI_MPI
   MPI_Reduce(single_times, sums, Number_acc_times, MPI_DOUBLE, MPI_SUM, 
 	     0, MPI_COMM_WORLD);
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPEHSHMEM
+
+  long* psync;
+  double* pwork;
+  double* data;
+  double* result;
+
+  psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  pwork = shmalloc( imax2( (Number_acc_times/2 ) + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( double ) ) ;
+
+  data = shmalloc( Number_acc_times * sizeof( double ) );
+  result = shmalloc( Number_acc_times * sizeof( double ) );
+
+  memcpy( data, single_times, Number_acc_times * sizeof( double ) );
+  
+  shmem_double_sum_to_all( result, data, Number_acc_times, 0,
+                          0, get_measurement_size(), pwork, psync );
+  memcpy( sums, result, Number_acc_times * sizeof( double ) );
+
+  shfree( psync );
+  shfree( pwork );
+  shfree( data );
+  shfree( result );
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   for( i = 1, total = 0.0 ; i < Number_acc_times; i++) total += sums[i];
 
@@ -174,8 +206,36 @@ void print_user_acc_info(void)
   single_times[5] = user_acc_wait_time;
   single_times[6] = user_acc_sync_time;
 
+#ifdef SKAMPI_MPI
   MPI_Reduce(single_times, sums, Number_acc_times, MPI_DOUBLE, MPI_SUM, 
 	     0, MPI_COMM_WORLD);
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPEHSHMEM
+
+  long* psync;
+  double* pwork;
+  double* data;
+  double* result;
+
+  psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  pwork = shmalloc( MAX( (Number_acc_times/2 ) + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( double ) ) ;
+
+  data = shmalloc( Number_acc_times * sizeof( double ) );
+  result = shmalloc( Number_acc_times * sizeof( double ) );
+
+  memcpy( data, single_times, Number_acc_times * sizeof( double ) );
+  
+  shmem_double_sum_to_all( result, data, Number_acc_times, 0,
+                          0, get_measurement_size(), pwork, psync );
+  memcpy( sums, result, Number_acc_times * sizeof( double ) );
+
+  shfree( psync );
+  shfree( pwork );
+  shfree( data );
+  shfree( result );
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   for( i = 1, total = 0.0 ; i < Number_acc_times; i++) total += sums[i];
 
@@ -270,7 +330,7 @@ static double unec_time;
 
 double acc_start_unec(void)
 {
-  unec_time = MPI_Wtime();
+  unec_time = wtime();
   return unec_time;
 }
 
@@ -278,7 +338,7 @@ double acc_stop_unec(void)
 {
   double now;
 
-  now = MPI_Wtime();
+  now = wtime();
   if( acc_unec_time >= 0.0 ) acc_unec_time += now - unec_time;
   if( user_acc_unec_time >= 0.0 ) user_acc_unec_time += now - unec_time;
   return now - unec_time;
