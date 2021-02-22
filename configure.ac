@@ -68,6 +68,8 @@ AS_IF([test "x$enable_openshmem" = xyes],[
   ACX_OPENSHMEM([], [AC_MSG_ERROR([Cannot find an OpenSHMEM compiler.])])
   AS_IF([test "x$enable_mpi" = "xno"], [
     CC="$OSHCC"
+  ],[
+    CC="$MPICC"
   ])
 ],[
   AM_CONDITIONAL(ENABLE_OPENSHMEM, false)
@@ -110,10 +112,10 @@ AC_OUTPUT
 # Print a recap
 AC_MSG_NOTICE([ *** *** *** *** *** *** *** ])
 AC_MSG_NOTICE([ *** Configuration recap *** ])
-AS_IF([test "x$enable_mpi" != "xno"], [
-  AC_MSG_NOTICE([ * MPI is       ENABLED])
-],[
+AS_IF([test "x$disable_mpi" == "xno"], [
   AC_MSG_NOTICE([ * MPI is       DISABLED])
+],[
+  AC_MSG_NOTICE([ * MPI is       ENABLED])
 ])
 AS_IF([test "x$enable_openshmem" = xyes],[
   AC_MSG_NOTICE([ * OpenSHMEM is ENABLED])

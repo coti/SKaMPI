@@ -4202,6 +4202,10 @@ fi
 
     CC="$OSHCC"
 
+else
+
+    CC="$MPICC"
+
 fi
 
 else
@@ -5600,15 +5604,15 @@ fi
 $as_echo "$as_me:  *** *** *** *** *** *** *** " >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}:  *** Configuration recap *** " >&5
 $as_echo "$as_me:  *** Configuration recap *** " >&6;}
-if test "x$enable_mpi" != "xno"; then :
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}:  * MPI is       ENABLED" >&5
-$as_echo "$as_me:  * MPI is       ENABLED" >&6;}
-
-else
+if test "x$disable_mpi" == "xno"; then :
 
   { $as_echo "$as_me:${as_lineno-$LINENO}:  * MPI is       DISABLED" >&5
 $as_echo "$as_me:  * MPI is       DISABLED" >&6;}
+
+else
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  * MPI is       ENABLED" >&5
+$as_echo "$as_me:  * MPI is       ENABLED" >&6;}
 
 fi
 if test "x$enable_openshmem" = xyes; then :
