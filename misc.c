@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #ifdef SKAMPI_MPI
 #include <mpi.h>
 #endif // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif // SKAMPI_OPENSHMEM
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -38,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include "output.h"
 #include "string.h"
 #include "errno.h"
+
 /*---------------------------------------------------------------------------*/
 
 static int measurement_rank;
@@ -48,10 +52,17 @@ static int global_rank;
 static int global_size;
 static int *global_ranks;
 
+#ifndef SKAMPI_MPI2
+#ifdef SKAMPI_OPENSHMEM
+extern long* psync;
+#endif
+#endif
+
+
 void update_measurement_comm(MPI_Comm comm) 
 {
   measurement_comm = comm;
-#ifdef SKAMPI_MPI
+#ifdef SKAMPI_MPI2
   MPI_Comm_rank(measurement_comm, &measurement_rank);
   MPI_Comm_size(measurement_comm, &measurement_size);
   
@@ -60,19 +71,15 @@ void update_measurement_comm(MPI_Comm comm)
 #else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   
-  int* rank;
-  long* psync;
+  static int rank;
 
   measurement_rank = shmem_my_pe();
   measurement_size = shmem_n_pes();
 
-  psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
-  rank = shmalloc( sizeof( int ) );
-  *rank = measurement_rank;
+  if( NULL == psync ) psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  rank = measurement_rank;
   
-  shmem_collect32( global_ranks, rank, 1, 0, 0, measurement_size, psync );
-  shfree( psync );
-  shfree( rank );
+  shmem_collect32( global_ranks, &rank, 1, 0, 0, measurement_size, psync );
 
 #else // SKAMPI_OPENSHMEM
 #warning "update_measurement_comm doing nothing"
@@ -99,7 +106,7 @@ MPI_Comm get_measurement_comm(void)
 
 void init_globals(void)
 {
-#ifdef SKAMPI_MPI
+#ifdef SKAMPI_MPI2
     MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &global_size);
     global_ranks = skampi_malloc_ints(global_size);
@@ -351,7 +358,7 @@ void *_mpi_malloc(MPI_Aint size, const char *_file, unsigned int _line)
 		      (int) size, _file, _line );
   }
 
-#ifdef SKAMPI_MPI
+#ifdef SKAMPI_MPI2
 #ifdef USE_MPI_ALLOC_MEM
   if (use_mpi_memory_allocation) {
     errcode = MPI_Alloc_mem( size, get_mpi_alloc_mem_info(), &baseptr );
@@ -379,7 +386,7 @@ void *_mpi_malloc(MPI_Aint size, const char *_file, unsigned int _line)
 			"\nmpi_malloc: Caller in file %s at line %u\n",  
 			(size_t) size, strerror(errno), errno, _file, _line );
     }
-#ifdef SKAMPI_MPI
+#ifdef SKAMPI_MPI2
 #ifdef USE_MPI_ALLOC_MEM
   }
 #endif // USE_MPI_ALLOC_MEM
@@ -429,6 +436,7 @@ char **_mpi_malloc_charps(int n, const char *_file, unsigned int _line)
   return (char**)_mpi_malloc(n*sizeof(char*), _file, _line);
 }
 
+#ifdef SKAMPI_MPI2
 MPI_Request *_skampi_malloc_reqs(int n, const char *_file, unsigned int _line)
 {
   return (MPI_Request*)_skampi_malloc(n*sizeof(MPI_Request), _file, _line);
@@ -458,6 +466,7 @@ MPI_Status *_mpi_malloc_statuses(int n, const char *_file, unsigned int _line)
 {
   return (MPI_Status*)_mpi_malloc(n*sizeof(MPI_Status), _file, _line);
 }
+#endif
 
 void mpi_free(void *base)
 {
@@ -469,11 +478,12 @@ void mpi_free(void *base)
 }
 
 void finalize_ranks(){
-#ifdef SKAMPI_MPI
+#ifdef SKAMPI_MPI2
   free( global_ranks );
 #else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
-  shfree( global_ranks );
+    shfree( global_ranks );
+    if( NULL != psync ) { shfree( psync ); psync = NULL; } /* ca chouine ici */
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI
 }

@@ -77,12 +77,10 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = skampi$(EXEEXT)
-@ENABLE_OPENSHMEM_TRUE@am__append_1 = measurements/openshmem.c        measurements/openshmem_atomic.c  \
-@ENABLE_OPENSHMEM_TRUE@		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c \
-@ENABLE_OPENSHMEM_TRUE@		measurements/openshmem_coll.c   measurements/openshmem_locks.c 
-
-@ENABLE_OPENSHMEM_TRUE@am__append_2 = -loshmem
-@ENABLE_PAPI_TRUE@am__append_3 = -lpapi
+@ENABLE_MPI_TRUE@am__append_1 = $(MPI_MEASUREMENTS)
+@ENABLE_OPENSHMEM_TRUE@am__append_2 = $(OPENSHMEM_MEASUREMENTS)
+@ENABLE_MPI_TRUE@@ENABLE_OPENSHMEM_TRUE@am__append_3 = -loshmem
+@ENABLE_PAPI_TRUE@am__append_4 = -lpapi
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -118,27 +116,28 @@ am__skampi_SOURCES_DIST = accounting.c autorefine.c compile.c debug.c \
 	measurements/openshmem_p2p.c measurements/openshmem_coll.c \
 	measurements/openshmem_locks.c
 am__dirstamp = $(am__leading_dot)dirstamp
-@ENABLE_OPENSHMEM_TRUE@am__objects_1 =  \
-@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem.$(OBJEXT) \
-@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_atomic.$(OBJEXT) \
-@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_ctx.$(OBJEXT) \
-@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_p2p.$(OBJEXT) \
-@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_coll.$(OBJEXT) \
-@ENABLE_OPENSHMEM_TRUE@	measurements/openshmem_locks.$(OBJEXT)
-am__objects_2 = measurements/bug.$(OBJEXT) measurements/coll.$(OBJEXT) \
+am__objects_1 = measurements/bug.$(OBJEXT) measurements/coll.$(OBJEXT) \
 	measurements/datatypes.$(OBJEXT) \
 	measurements/delayed.$(OBJEXT) measurements/demo.$(OBJEXT) \
 	measurements/helpers.$(OBJEXT) measurements/io.$(OBJEXT) \
 	measurements/localio.$(OBJEXT) measurements/mmisc.$(OBJEXT) \
 	measurements/node2node.$(OBJEXT) \
-	measurements/onesided.$(OBJEXT) measurements/pt2pt.$(OBJEXT) \
-	$(am__objects_1)
+	measurements/onesided.$(OBJEXT) measurements/pt2pt.$(OBJEXT)
+@ENABLE_MPI_TRUE@am__objects_2 = $(am__objects_1)
+am__objects_3 = measurements/openshmem.$(OBJEXT) \
+	measurements/openshmem_atomic.$(OBJEXT) \
+	measurements/openshmem_ctx.$(OBJEXT) \
+	measurements/openshmem_p2p.$(OBJEXT) \
+	measurements/openshmem_coll.$(OBJEXT) \
+	measurements/openshmem_locks.$(OBJEXT)
+@ENABLE_OPENSHMEM_TRUE@am__objects_4 = $(am__objects_3)
+am__objects_5 = $(am__objects_2) $(am__objects_4)
 am_skampi_OBJECTS = accounting.$(OBJEXT) autorefine.$(OBJEXT) \
 	compile.$(OBJEXT) debug.$(OBJEXT) exec.$(OBJEXT) \
 	main.$(OBJEXT) measurement.$(OBJEXT) mem.$(OBJEXT) \
 	misc.$(OBJEXT) output.$(OBJEXT) print.$(OBJEXT) \
 	symboltable.$(OBJEXT) synchronize.$(OBJEXT) m.$(OBJEXT) \
-	lex.yy.$(OBJEXT) parser.$(OBJEXT) $(am__objects_2)
+	lex.yy.$(OBJEXT) parser.$(OBJEXT) $(am__objects_5)
 skampi_OBJECTS = $(am_skampi_OBJECTS)
 am__DEPENDENCIES_1 =
 skampi_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -320,19 +319,34 @@ ACLOCAL_AMFLAGS = -I config
 AM_YFLAGS = -d
 BUILT_SOURCES = lex.yy.c parser.c parser.h m.c
 CLEANFILES = lex.yy.c parser.c parser.h m.c
-MEASUREMENTS = measurements/bug.c measurements/coll.c \
-	measurements/datatypes.c measurements/delayed.c \
-	measurements/demo.c measurements/helpers.c measurements/io.c \
-	measurements/localio.c measurements/mmisc.c \
-	measurements/node2node.c measurements/onesided.c \
-	measurements/pt2pt.c $(am__append_1)
+MEASUREMENTS = $(am__append_1) $(am__append_2)
+MPI_MEASUREMENTS = \
+		measurements/bug.c measurements/coll.c measurements/datatypes.c    \
+		measurements/delayed.c measurements/demo.c measurements/helpers.c  \
+		measurements/io.c measurements/localio.c measurements/mmisc.c      \
+		measurements/node2node.c measurements/onesided.c measurements/pt2pt.c
+
+OPENSHMEM_MEASUREMENTS = \
+		measurements/openshmem.c        measurements/openshmem_atomic.c   \
+		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c      \
+		measurements/openshmem_coll.c   measurements/openshmem_locks.c 
+
 skampi_SOURCES = \
 	accounting.c autorefine.c compile.c debug.c exec.c main.c measurement.c mem.c misc.c output.c print.c symboltable.c synchronize.c \
 	m.c lex.yy.c \
 	parser.y lexer.lex \
 	$(MEASUREMENTS)
 
-skampi_LDADD = -lm @LEXLIB@ $(am__append_2) $(am__append_3)
+skampi_LDADD = -lm @LEXLIB@ $(am__append_3) $(am__append_4)
+@ENABLE_MPI_FALSE@@ENABLE_OPENSHMEM_TRUE@THECC = $(OSHCC)
+@ENABLE_MPI_TRUE@THECC = $(MPICC)
+@ENABLE_MPI_FALSE@@ENABLE_OPENSHMEM_FALSE@EXCLUDE_M = "--excl=$(OPENSHMEM_MEASUREMENTS)"
+@ENABLE_MPI_FALSE@@ENABLE_OPENSHMEM_TRUE@EXCLUDE_M = --excl="$(MPI_MEASUREMENTS)"
+@ENABLE_MPI_TRUE@@ENABLE_OPENSHMEM_FALSE@EXCLUDE_M = "--excl=$(OPENSHMEM_MEASUREMENTS) $(MPI_MEASUREMENTS)"
+
+# This is not exactly elegant
+# I don't want to exclude anything at all
+@ENABLE_MPI_TRUE@@ENABLE_OPENSHMEM_TRUE@EXCLUDE_M = 
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -876,11 +890,11 @@ uninstall-am: uninstall-binPROGRAMS
 	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
 
 
-m.c: $(MEASUREMENTS) $(top_srcdir)/extract.pl
-	$(top_srcdir)/extract.pl --mpicc="$(MPICC)" --cflags="$(CFLAGS) -E" --dir=$(top_srcdir)/measurements > $(top_srcdir)/m.c
+$(top_builddir)/m.c: $(MEASUREMENTS) $(srcdir)/extract.pl
+	$(srcdir)/extract.pl --mpicc="$(THECC)" --cflags="$(CFLAGS) -E" --dir=$(srcdir)/measurements $(EXCLUDE_M) > m.c
 
-lex.yy.c: $(top_srcdir)/lexer.lex
-	$(LEX) $(LFLAGS) $(AM_LFLAGS) -o$@ $<
+lex.yy.c: $(srcdir)/lexer.lex
+	$(LEX) $(LFLAGS) $(AM_LFLAGS) -o $@ $<
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
