@@ -308,7 +308,7 @@ void init_synchronization(void)
 #ifdef SKAMPI_MPI2
     MPI_Bcast(&start_batch, 1, MPI_DOUBLE, 0, get_measurement_comm());
     
-#else // SKAMPI_MPI
+#else // SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   static double gl_start, gl_start_res;
@@ -325,7 +325,7 @@ void init_synchronization(void)
   }
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
   }
 }
 
@@ -341,11 +341,11 @@ double start_synchronization(void)
   case SYNC_BARRIER:
 #ifdef SKAMPI_MPI2
       MPI_Barrier(get_measurement_comm());
-#else // SKAMPI_MPI
+#else // SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
       shmem_barrier_all();
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
     start_sync = wtime();
     break;
   case SYNC_REAL:
@@ -492,7 +492,7 @@ static void measurement_loop(struct term *t)
   pwork_i = shmalloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
 
 #ifdef SKAMPI_USE_PAPI
     mult = 1e-6*unit_seconds;
@@ -542,7 +542,7 @@ static void measurement_loop(struct term *t)
   gl_invalid_r = shmalloc( get_measurement_size() * max_rep_hard_limit * sizeof( int ) );
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
 
   init_buffer();
   init_struct_variable(&spent_time, TYPE_VOID, NULL, NULL);
@@ -576,7 +576,7 @@ static void measurement_loop(struct term *t)
       }
     }
 
-#ifdef SKAMPI_MPI3
+#ifdef SKAMPI_MPI2
     MPI_Gatherv(&(local_results[start_not_yet_gathered_results]), 
 		result_index - start_not_yet_gathered_results, MPI_DOUBLE,
 		all_results, recv_counts, recv_displs, MPI_DOUBLE, 0, get_measurement_comm());
@@ -589,7 +589,7 @@ static void measurement_loop(struct term *t)
       
       MPI_Reduce(&stop_batch, &global_stop_batch, 1, MPI_DOUBLE, MPI_MAX, 0, get_measurement_comm());
     }
-#else // SKAMPI_MPI
+#else // SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
 
     /* cf loop above: all the counts in the allgatherv have the same value */
@@ -629,7 +629,7 @@ static void measurement_loop(struct term *t)
     }
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
 
     if( lrootproc() ) { /* overwrite invalid results */ 
 
@@ -709,7 +709,7 @@ static void measurement_loop(struct term *t)
 	      std_error <= max_relative_standard_error*mean_value);
     }
     
-#ifdef SKAMPI_MPI2   
+#ifdef SKAMPI_MPI2
     MPI_Bcast(&result_index, 1, MPI_INT, 0, get_measurement_comm());
     start_not_yet_gathered_results = result_index;
     MPI_Bcast(&stop, 1, MPI_INT, 0, get_measurement_comm());      /* @@@@ optimize */
@@ -729,7 +729,7 @@ static void measurement_loop(struct term *t)
       MPI_Bcast(&start_batch, 1, MPI_DOUBLE, 0, get_measurement_comm());
     }
 
-#else // SKAMPI_MPI
+#else // SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
 
@@ -754,6 +754,7 @@ static void measurement_loop(struct term *t)
   
   if( current_synchronization == SYNC_REAL ) {
       if( lrootproc() ) start_batch = wtime();
+      //MPI_Bcast(&start_batch, 1, MPI_DOUBLE, 0, get_measurement_comm());
       /* @@ actually it should be 
          
          if( lrootproc() )
@@ -762,19 +763,19 @@ static void measurement_loop(struct term *t)
            and transform "counter + 1" to "counter" and "max_counter +
            1" to "max_counter" respectively in should_wait_till,
            start_synchronization, update_batch_params */
-      if( get_my_global_rank() == 0 ){
-          tosend_d = start_batch;
-      }
-      shmem_broadcast64( &result_d, &tosend_d, 1, 0, 0, 0, get_measurement_size(), psync );
-      shmem_quiet();
-      
-      if( get_my_global_rank() != 0 ){
-          start_batch = tosend_d;
-      }
+        if( get_my_global_rank() == 0 ){
+            tosend_d = start_batch;
+        }
+        shmem_broadcast64( &result_d, &tosend_d, 1, 0, 0, 0, get_measurement_size(), psync );
+        shmem_quiet();
+        
+        if( get_my_global_rank() != 0 ){
+            start_batch = result_d;
+        }
     }
     
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
  } while( !stop );
 
 
@@ -829,7 +830,7 @@ static void measurement_loop(struct term *t)
   shfree( gl_local_results );
   shfree( gl_my_results );
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
 }
 
 
@@ -839,11 +840,11 @@ int execute_measurement(struct statement *s)
   /*   struct variable init_error_code; */
 #ifdef SKAMPI_MPI2
   int meas_buffer_too_small, global_meas_buffer_too_small;
-#else // SKAMPI_MPI
+#else // SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
   static int meas_buffer_too_small, global_meas_buffer_too_small;
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
 
 
   global_meas_buffer_too_small = False;
@@ -878,7 +879,7 @@ int execute_measurement(struct statement *s)
     MPI_Allreduce(&meas_buffer_too_small, &global_meas_buffer_too_small, 1, 
 		  MPI_INT, MPI_MAX, get_measurement_comm());
 
-#else // SKAMPI_MPI
+#else // SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   int* pwork;
@@ -893,7 +894,7 @@ int execute_measurement(struct statement *s)
   shfree( pwork );
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI
+#endif // SKAMPI_MPI2
 
     if (lrootproc() && just_entered_measurement_block && global_meas_buffer_too_small) {
       error_without_abort("Warning !?\n"
