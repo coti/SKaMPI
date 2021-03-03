@@ -19,6 +19,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 #include <mpi.h>
+#include <shmem.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -39,7 +40,7 @@ double *ping_pong_min_time; /* ping_pong_min_time[i] is the minimum time of one 
 double *tds;                /* tds[i] is the time difference between the 
 			       current node and global node i */
 
-#ifndef SKAMPI_MPI
+#ifndef SKAMPI_MPI2
 #ifndef MPI_MAX_PROCESSOR_NAME
 #define MPI_MAX_PROCESSOR_NAME 256
 #endif
@@ -57,7 +58,7 @@ extern int wait_till(double time_stamp, double *last_time_stamp);
 extern double should_wait_till(int counter, double interval, double offset);
 
 void get_processor_name( char* name, int* namelen ){
-#ifdef SKAMPI_MPI
+#ifdef SKAMPI_MPI2
     MPI_Get_processor_name( name, &namelen );
 #else
     gethostname( name, MPI_MAX_PROCESSOR_NAME ); 
@@ -75,16 +76,21 @@ void init_synchronization_module(void)
   ping_pong_min_time = skampi_malloc_doubles(get_global_size());
   for( i = 0; i < get_global_size(); i++) ping_pong_min_time[i] = -1.0;
 
+#ifdef SKAMPI_MPI2
 #if MPI_VERSION < 2
   MPI_Attr_get(MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &mpi_wtime_is_global_ptr, &flag);
 #else
   MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &mpi_wtime_is_global_ptr, &flag);
 #endif
+#else
+  /* no, MPI clocks are not synchronizer because we have no MPI */
+  flag = 0;
+#endif
   if( flag == 0 ) 
     mpi_wtime_is_global = False;
   else
     mpi_wtime_is_global = *mpi_wtime_is_global_ptr;
-
+  
   rdebug(DBG_TIMEDIFF, "mpi_wtime_is_global = %d\n", mpi_wtime_is_global);
 }
 
@@ -108,12 +114,35 @@ void print_global_time_differences(void)
   my_name[name_len] = '\0';
   pid = getpid();
 
+#ifdef SKAMPI_MPI2
   MPI_Gather(tds, get_global_size(), MPI_DOUBLE, 
 	     all_tds, get_global_size(), MPI_DOUBLE, 
 	     0, MPI_COMM_WORLD);
   MPI_Gather(my_name, MPI_MAX_PROCESSOR_NAME, MPI_CHAR,
 	     names, MPI_MAX_PROCESSOR_NAME, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Gather(&pid, 1, MPI_INT, pids, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+
+  long* psync;
+  double* gl_tds;
+  double* gl_tds_all;
+  
+  psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  gl_tds_all = shmalloc( get_global_size()*get_global_size() * sizeof( double) );
+  gl_tds = shmalloc( get_global_size() * sizeof(double ) );
+
+  memcpy( gl_tds, tds, get_global_size() * sizeof(double ) );
+  shmem_collect64( gl_tds_all, gl_tds, get_global_size(), 0, 0, get_global_size(), psync );
+  memcpy( all_tds, gl_tds_all, get_global_size()*get_global_size() * sizeof(double ) );
+  
+  shfree( gl_tds );
+  shfree( gl_tds_all );
+  shfree( psync );
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   if( grootproc() ) {
     for( i = 0; i < get_global_size(); i++)
@@ -140,9 +169,19 @@ static void ping_pong(int p1, int p2)
   double my_time, my_last_time, other_time;
   double td_min, td_max;
   double invalid_time = -1.0;
+#ifdef SKAMPI_MPI2
   MPI_Status status;
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+
+  static double sh_p1_time = 0, sh_p2_time = 0;
+  static int64_t* it;
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
   int pp_tag = 43;
 
+#ifdef SKAMPI_MPI2
 
   /* I had to unroll the main loop because I didn't find a portable way
      to define the initial td_min and td_max with INFINITY and NINFINITY */
@@ -209,7 +248,119 @@ static void ping_pong(int p1, int p2)
       i++;
     }
   }
+ #else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+
+  //  double invalid_time2 = 0b11111111111111111111111111111111; //0xffffffffffffffff;
+  //  int64_t invalid_time2 = 0b11111111111111111111111111111111; //0xffffffffffffffff;
+
+  /* there is no shmem_double_wait_until, so I cheat with an int* */
   
+  if( get_measurement_rank() == p1 ) {
+      it = (int64_t*)&sh_p2_time;
+      
+      other_global_id = get_global_rank(p2);
+      my_last_time = wtime();
+      
+      shmem_double_p( &sh_p1_time, my_last_time, p2 );
+      shmem_quiet();
+      shmem_int64_wait_until( it, SHMEM_CMP_NE, 0 );
+      other_time = sh_p2_time;
+      sh_p2_time = 0.0;
+    
+      my_time = wtime();
+      td_min = other_time - my_time;
+      td_max = other_time - my_last_time;
+      
+      shmem_double_p( &sh_p1_time, my_time, p2 );
+      
+  } else {
+      other_global_id = get_global_rank(p1);
+      it = (int64_t*)&sh_p1_time;
+      
+      shmem_int64_wait_until( it, SHMEM_CMP_NE, 0 );
+      other_time = sh_p1_time;
+      sh_p1_time = 0.0;
+      
+      my_last_time = wtime();
+      td_min = other_time - my_last_time;
+      
+      shmem_double_p( &sh_p2_time, my_last_time, p1 );
+      shmem_quiet();
+      
+      shmem_int64_wait_until( it, SHMEM_CMP_NE, 0 );
+      other_time = sh_p1_time;
+      sh_p1_time = 0.0;
+      
+      my_time = wtime();
+      td_min = fmax2(td_min, other_time - my_time);
+      td_max = other_time - my_last_time;
+  }
+
+
+  if( get_measurement_rank() == p1 ) {
+      i = 1;
+      while( 1 ) {
+          shmem_int64_wait_until( it, SHMEM_CMP_NE, 0 );
+          other_time = sh_p2_time;
+          sh_p2_time = 0.0;
+          
+          if( other_time < 0.0 )break;
+          
+          my_last_time = my_time; 
+          my_time = wtime();
+          td_min = fmax2(td_min, other_time - my_time);
+          td_max = fmin2(td_max, other_time - my_last_time);
+          if( ping_pong_min_time[other_global_id] >= 0.0  && 
+              i >= Minimum_ping_pongs && 
+              my_time - my_last_time < ping_pong_min_time[other_global_id]*1.10 ) {
+              shmem_double_p( &sh_p1_time, -1, p2 );
+              shmem_quiet();
+              break;
+          }
+          i++;
+          if( i == Number_ping_pongs ) {
+              shmem_double_p( &sh_p1_time, -1, p2 );
+              shmem_quiet();
+              break;
+          }
+          shmem_double_p( &sh_p1_time, my_time, p2 );
+          shmem_quiet();
+      }
+      
+  } else {
+      i = 1;
+      while( 1 ) {
+          shmem_double_p( &sh_p2_time, my_time, p1 );
+          shmem_quiet();
+
+          shmem_int64_wait_until( it, SHMEM_CMP_NE, 0.0 );
+          other_time = sh_p1_time;
+          sh_p1_time = 0.0;
+
+          if( other_time < 0 ){
+              break;
+          }
+          my_last_time = my_time;
+          my_time = wtime();
+          td_min = fmax2(td_min, other_time - my_time);
+          td_max = fmin2(td_max, other_time - my_last_time);
+          if( ping_pong_min_time[other_global_id] >= 0.0 && 
+              i >= Minimum_ping_pongs &&
+              my_time - my_last_time < ping_pong_min_time[other_global_id]*1.10 ) {
+              shmem_double_p( &sh_p2_time, -1, p1 );
+              shmem_quiet();
+              break;
+          }
+          i++;
+      }
+  }
+  
+
+ #endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
+ 
   if( ping_pong_min_time[other_global_id] < 0.0) 
     ping_pong_min_time[other_global_id] = td_max-td_min;
   else 
