@@ -13,6 +13,13 @@
 int* ack;
 shmem_ctx_t context;
 
+/* Note: the standard says the arguments are, for instance:
+   TYPE shmem_atomic_fetch(const TYPE *source, int pe);
+   But OpenMPI defines them as:
+   TYPE shmem_atomic_fetch(TYPE *source, int pe);
+   So here we are not using const qualifiers for the moment.
+*/
+
 /*---------------------------------------------------------------------------*/
 /*        Measurement routines for fetching atomic routines                  */
 /*---------------------------------------------------------------------------*/
@@ -62,6 +69,96 @@ double erusaem_Shmem_Atomic_XXX( int iterations, int (*routine)( int*, int ) ){
 }
 
 double erusaem_Shmem_Ctx_Atomic_XXX( int iterations, int (*routine)( shmem_ctx_t, int*, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank%2;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( context, ack, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( context, ack, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( context, ack, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
+/*---------------------------------------------------------------------------*/
+
+double erusaem_Shmem_Atomic_C_XXX( int iterations, int (*routine)( const int*, int ) ){
+    
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
+    int r, mod, i, rank, size;
+    size = get_measurement_size();
+    rank = get_measurement_rank();
+    mod = rank%2;
+    
+    start_time = start_synchronization();
+    
+    for( i = 0 ; i < iterations ; i++ ) {
+        /* Odd-numbered processes fetch from their -1 neighbor */
+        if  ( mod == 1 ){
+          start_time = wtime();
+          r = routine( ack, rank - 1 );
+          end_time = wtime();
+          mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+        
+        /* Even-numbered processes fetch from their +1 neighbor, if they have one */
+        if  ( mod == 0 && rank < size - 1 ){
+            start_time = wtime();
+            r = routine( ack, rank + 1 );
+            end_time = wtime();
+            mytime += ( end_time - start_time );
+        }
+        shmem_barrier_all();
+      
+        /* Otherwise, the last process fetches from 0 */
+        if( size % 2 > 0 ){
+            if  ( rank == size - 1 ){
+                start_time = wtime();
+                r = routine( ack, 0 );
+                end_time = wtime();
+                mytime += ( end_time - start_time );
+            }
+        }
+    }
+    end_time = stop_synchronization();
+    
+    return mytime / iterations;
+}
+
+double erusaem_Shmem_Ctx_Atomic_C_XXX( int iterations, int (*routine)( shmem_ctx_t, const int*, int ) ){
     
     double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0;
     int r, mod, i, rank, size;
@@ -309,7 +406,7 @@ double erusaem_Shmem_Ctx_Atomic_XXX_3( int iterations, bool cond, int (*routine)
 /*      Measurement routines for non-fetching atomic routines                */
 /*---------------------------------------------------------------------------*/
 
-double erusaem_Shmem_Atomic_NF( int iterations, int (*routine)( int*, int ) ){
+double erusaem_Shmem_Atomic_NF( int iterations, void (*routine)( int*, int ) ){
     
     double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0, qtime = 0.0;
     int r, mod, i, rank, size;
@@ -333,7 +430,7 @@ double erusaem_Shmem_Atomic_NF( int iterations, int (*routine)( int*, int ) ){
         /* Odd-numbered processes fetch from their -1 neighbor */
         if  ( mod == 1 ){
           start_time = wtime();
-          r = routine( ack, rank - 1 );
+          routine( ack, rank - 1 );
           shmem_quiet();
           end_time = wtime();
           mytime += ( end_time - start_time );
@@ -343,7 +440,7 @@ double erusaem_Shmem_Atomic_NF( int iterations, int (*routine)( int*, int ) ){
         /* Even-numbered processes fetch from their +1 neighbor, if they have one */
         if  ( mod == 0 && rank < size - 1 ){
             start_time = wtime();
-            r = routine( ack, rank + 1 );
+            routine( ack, rank + 1 );
             shmem_quiet();
             end_time = wtime();
             mytime += ( end_time - start_time );
@@ -354,7 +451,7 @@ double erusaem_Shmem_Atomic_NF( int iterations, int (*routine)( int*, int ) ){
         if( size % 2 > 0 ){
             if  ( rank == size - 1 ){
                 start_time = wtime();
-                r = routine( ack, 0 );
+                routine( ack, 0 );
                 shmem_quiet();
                 end_time = wtime();
                 mytime += ( end_time - start_time );
@@ -366,7 +463,7 @@ double erusaem_Shmem_Atomic_NF( int iterations, int (*routine)( int*, int ) ){
     return ( mytime - qtime ) / iterations;
 }
 
-double erusaem_Shmem_Ctx_Atomic_NF( int iterations, int (*routine)( shmem_ctx_t, int*, int ) ){
+double erusaem_Shmem_Ctx_Atomic_NF( int iterations, void (*routine)( shmem_ctx_t, int*, int ) ){
     
     double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0, qtime = 0.0;
     int r, mod, i, rank, size;
@@ -390,7 +487,7 @@ double erusaem_Shmem_Ctx_Atomic_NF( int iterations, int (*routine)( shmem_ctx_t,
         /* Odd-numbered processes fetch from their -1 neighbor */
         if  ( mod == 1 ){
           start_time = wtime();
-          r = routine( context, ack, rank - 1 );
+          routine( context, ack, rank - 1 );
           shmem_quiet();
           end_time = wtime();
           mytime += ( end_time - start_time );
@@ -400,7 +497,7 @@ double erusaem_Shmem_Ctx_Atomic_NF( int iterations, int (*routine)( shmem_ctx_t,
         /* Even-numbered processes fetch from their +1 neighbor, if they have one */
         if  ( mod == 0 && rank < size - 1 ){
             start_time = wtime();
-            r = routine( context, ack, rank + 1 );
+            routine( context, ack, rank + 1 );
             shmem_quiet();
             end_time = wtime();
             mytime += ( end_time - start_time );
@@ -411,7 +508,7 @@ double erusaem_Shmem_Ctx_Atomic_NF( int iterations, int (*routine)( shmem_ctx_t,
         if( size % 2 > 0 ){
             if  ( rank == size - 1 ){
                 start_time = wtime();
-                r = routine( context, ack, 0 );
+                routine( context, ack, 0 );
                 shmem_quiet();
                 end_time = wtime();
                 mytime += ( end_time - start_time );
@@ -425,7 +522,7 @@ double erusaem_Shmem_Ctx_Atomic_NF( int iterations, int (*routine)( shmem_ctx_t,
 
 /*---------------------------------------------------------------------------*/
 
-double erusaem_Shmem_Atomic_NF_2( int iterations, int (*routine)( int*, int, int ) ){
+double erusaem_Shmem_Atomic_NF_2( int iterations, void (*routine)( int*, int, int ) ){
     
     double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0, qtime = 0.0;
     int r, mod, i, rank, size;
@@ -444,13 +541,13 @@ double erusaem_Shmem_Atomic_NF_2( int iterations, int (*routine)( int*, int, int
     }
     qtime = wtime() - t1;
 
-    /* pPerform the operation and ensure completion with shmem_quiet */
+    /* Perform the operation and ensure completion with shmem_quiet */
     
     for( i = 0 ; i < iterations ; i++ ) {
         /* Odd-numbered processes fetch from their -1 neighbor */
         if  ( mod == 1 ){
           start_time = wtime();
-          r = routine( ack, value, rank - 1 );
+          routine( ack, value, rank - 1 );
           shmem_quiet();
           end_time = wtime();
           mytime += ( end_time - start_time );
@@ -460,7 +557,7 @@ double erusaem_Shmem_Atomic_NF_2( int iterations, int (*routine)( int*, int, int
         /* Even-numbered processes fetch from their +1 neighbor, if they have one */
         if  ( mod == 0 && rank < size - 1 ){
             start_time = wtime();
-            r = routine( ack, value, rank + 1 );
+            routine( ack, value, rank + 1 );
             shmem_quiet();
             end_time = wtime();
             mytime += ( end_time - start_time );
@@ -471,7 +568,7 @@ double erusaem_Shmem_Atomic_NF_2( int iterations, int (*routine)( int*, int, int
         if( size % 2 > 0 ){
             if  ( rank == size - 1 ){
                 start_time = wtime();
-                r = routine( ack, value, 0 );
+                routine( ack, value, 0 );
                 shmem_quiet();
                 end_time = wtime();
                 mytime += ( end_time - start_time );
@@ -483,7 +580,7 @@ double erusaem_Shmem_Atomic_NF_2( int iterations, int (*routine)( int*, int, int
     return ( mytime - qtime ) / iterations;
 }
 
-double erusaem_Shmem_Ctx_Atomic_NF_2( int iterations, int (*routine)( shmem_ctx_t, int*, int, int ) ){
+double erusaem_Shmem_Ctx_Atomic_NF_2( int iterations, void (*routine)( shmem_ctx_t, int*, int, int ) ){
     
     double start_time, t1 = 1.0, end_time, t2 = 0.0, mytime = 0.0, qtime = 0.0;
     int r, mod, i, rank, size;
@@ -508,7 +605,7 @@ double erusaem_Shmem_Ctx_Atomic_NF_2( int iterations, int (*routine)( shmem_ctx_
         /* Odd-numbered processes fetch from their -1 neighbor */
         if  ( mod == 1 ){
           start_time = wtime();
-          r = routine( context, ack, value, rank - 1 );
+          routine( context, ack, value, rank - 1 );
           shmem_quiet();
           end_time = wtime();
           mytime += ( end_time - start_time );
@@ -518,7 +615,7 @@ double erusaem_Shmem_Ctx_Atomic_NF_2( int iterations, int (*routine)( shmem_ctx_
         /* Even-numbered processes fetch from their +1 neighbor, if they have one */
         if  ( mod == 0 && rank < size - 1 ){
             start_time = wtime();
-            r = routine( context, ack, value, rank + 1 );
+            routine( context, ack, value, rank + 1 );
             shmem_quiet();
             end_time = wtime();
             mytime += ( end_time - start_time );
@@ -529,7 +626,7 @@ double erusaem_Shmem_Ctx_Atomic_NF_2( int iterations, int (*routine)( shmem_ctx_
         if( size % 2 > 0 ){
             if  ( rank == size - 1 ){
                 start_time = wtime();
-                r = routine( context, ack, value, 0 );
+                routine( context, ack, value, 0 );
                 shmem_quiet();
                 end_time = wtime();
                 mytime += ( end_time - start_time );
@@ -581,7 +678,7 @@ void finalize_Shmem_Atomic_Fetch( int iterations ){
 }
 
 double measure_Shmem_Atomic_Fetch( int iterations ){
-    return erusaem_Shmem_Atomic_XXX( iterations, &shmem_int_atomic_fetch );
+    return erusaem_Shmem_Atomic_C_XXX( iterations, &shmem_int_atomic_fetch );
 }
 
 void init_Shmem_Ctx_Atomic_Fetch( int iterations ){
@@ -593,7 +690,7 @@ void finalize_Shmem_Ctx_Atomic_Fetch( int iterations ){
 }
 
 double measure_Shmem_Ctx_Atomic_Fetch( int iterations ){
-    return erusaem_Shmem_Ctx_Atomic_XXX( iterations, &shmem_ctx_int_atomic_fetch );
+    return erusaem_Shmem_Ctx_Atomic_C_XXX( iterations, &shmem_ctx_int_atomic_fetch );
 }
 
 /*---------------------------------------------------------------------------*/

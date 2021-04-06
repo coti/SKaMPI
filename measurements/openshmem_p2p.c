@@ -215,7 +215,7 @@ void init_Shmem_P_Simple( int iterations ) {
 
 double measure_Shmem_P_Simple( int iterations ){
     double btime, ptime = -1.0, t1, t2;
-    char* sym;
+    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -262,7 +262,7 @@ void init_Shmem_P_Round( int iterations ) {
 
 double measure_Shmem_P_Round( int iterations ){
     double btime, ptime = -1.0, t1, t2;
-    char* sym;
+    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -835,7 +835,7 @@ void init_Shmem_G_Round( int iterations ) {
 
 double measure_Shmem_G_Round( int iterations ){
     double start_time = 1.0, end_time = 0.0;
-    char* sym;
+    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -868,7 +868,7 @@ void init_Shmem_G_Simple( int iterations ) {
 
 double measure_Shmem_G_Simple( int iterations ){
     double start_time = 1.0, end_time = 0.0;
-    char* sym;
+    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
