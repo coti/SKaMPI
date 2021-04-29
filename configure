@@ -1326,6 +1326,7 @@ Optional Features:
   --disable-dependency-tracking
                           speeds up one-time build
   --disable-mpi           Disable MPI (measurements and infrastructure)
+                          [default=enabled]
   --enable-openshmem      Enable OpenSHMEM operations [default=no]
   --enable-papi           Use PAPI for measurements [default=no]
 
@@ -3826,7 +3827,7 @@ rm -f conftest.l $LEX_OUTPUT_ROOT.c
 
 fi
 
-# Enable MPI or not (default: yes)
+# Enable MPI or not (default: enabled)
 # Check whether --enable-mpi was given.
 if test "${enable_mpi+set}" = set; then :
   enableval=$enable_mpi;
@@ -4222,7 +4223,7 @@ fi
 fi
 
 # You need at least one of them
-if test "x$enable_mpi" != xyes ; then
+if test "x$disable_mpi" = xyes ; then
    if test "x$enable_openshmem" != xyes ; then
       as_fn_error $? "You need at least MPI or OpenSHMEM." "$LINENO" 5
    fi
@@ -5604,7 +5605,7 @@ fi
 $as_echo "$as_me:  *** *** *** *** *** *** *** " >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}:  *** Configuration recap *** " >&5
 $as_echo "$as_me:  *** Configuration recap *** " >&6;}
-if test "x$disable_mpi" == "xno"; then :
+if test "x$enable_mpi" == "xno"; then :
 
   { $as_echo "$as_me:${as_lineno-$LINENO}:  * MPI is       DISABLED" >&5
 $as_echo "$as_me:  * MPI is       DISABLED" >&6;}

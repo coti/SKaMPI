@@ -1,4 +1,3 @@
- 
 #
 #
 # Copyright (c) 2021 LIPN - Universite Sorbonne Paris Nord
@@ -44,9 +43,9 @@ AM_PROG_CC_C_O
 AC_PROG_YACC
 AC_PROG_LEX
 
-# Enable MPI or not (default: yes)
+# Enable MPI or not (default: enabled)
 AC_ARG_ENABLE([mpi],
-    AS_HELP_STRING([--disable-mpi], [Disable MPI (measurements and infrastructure)]))
+    AS_HELP_STRING([--disable-mpi], [Disable MPI (measurements and infrastructure) [default=enabled]]))
 
 AS_IF([test "x$enable_mpi" != "xno"], [
   CFLAGS+=" -DSKAMPI_MPI"
@@ -76,7 +75,7 @@ AS_IF([test "x$enable_openshmem" = xyes],[
 ])
 
 # You need at least one of them
-if test "x$enable_mpi" != xyes ; then
+if test "x$disable_mpi" = xyes ; then
    if test "x$enable_openshmem" != xyes ; then
       AC_MSG_ERROR([You need at least MPI or OpenSHMEM.])
    fi
@@ -112,7 +111,7 @@ AC_OUTPUT
 # Print a recap
 AC_MSG_NOTICE([ *** *** *** *** *** *** *** ])
 AC_MSG_NOTICE([ *** Configuration recap *** ])
-AS_IF([test "x$disable_mpi" == "xno"], [
+AS_IF([test "x$enable_mpi" == "xno"], [
   AC_MSG_NOTICE([ * MPI is       DISABLED])
 ],[
   AC_MSG_NOTICE([ * MPI is       ENABLED])
