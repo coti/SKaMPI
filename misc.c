@@ -76,7 +76,7 @@ void update_measurement_comm(MPI_Comm comm)
   measurement_rank = shmem_my_pe();
   measurement_size = shmem_n_pes();
 
-  if( NULL == psync ) psync = shmem_malloc( SHMEM_COLLECT_SYNC_SIZE );
+  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof( long ) );
   rank = measurement_rank;
   
   shmem_collect32( global_ranks, &rank, 1, 0, 0, measurement_size, psync );
@@ -483,7 +483,7 @@ void finalize_ranks(){
 #else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
     shmem_free( global_ranks );
-    if( NULL != psync ) { shmem_free( psync ); psync = NULL; } /* ca chouine ici */
+    //    if( NULL != psync ) { shmem_free( psync ); psync = NULL; } /* ca chouine ici */
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI
 }
