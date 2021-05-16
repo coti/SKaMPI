@@ -49,7 +49,7 @@ static struct variable meas_params[MAX_NUMBER_PARAMS];
 
 #ifndef SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
-long* psync = NULL;
+extern long* psync;
 #endif
 #endif
 

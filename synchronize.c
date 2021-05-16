@@ -47,6 +47,13 @@ double *tds;                /* tds[i] is the time difference between the
 #include <string.h>
 #endif
 
+#ifndef SKAMPI_MPI2
+#ifdef SKAMPI_OPENSHMEM
+extern long* psync;
+#endif
+#endif
+
+
 enum {
   Number_ping_pongs = 100,
   Minimum_ping_pongs = 8
@@ -125,11 +132,9 @@ void print_global_time_differences(void)
 #else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
 
-  long* psync;
   double* gl_tds;
   double* gl_tds_all;
   
-  psync = shmem_malloc( SHMEM_COLLECT_SYNC_SIZE );
   gl_tds_all = shmem_malloc( get_global_size()*get_global_size() * sizeof( double) );
   gl_tds = shmem_malloc( get_global_size() * sizeof(double ) );
 
@@ -139,7 +144,6 @@ void print_global_time_differences(void)
   
   shmem_free( gl_tds );
   shmem_free( gl_tds_all );
-  shmem_free( psync );
 
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI

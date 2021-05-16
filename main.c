@@ -65,7 +65,7 @@ bool log_source;
 
 #ifndef SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
-extern long* psync;
+long* psync = NULL;
 #endif
 #endif
 
