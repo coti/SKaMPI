@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
   int size = shmem_n_pes();
   int rank = shmem_my_pe();
   
-  if( NULL == psync ) psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  if( NULL == psync ) psync = shmem_malloc( SHMEM_COLLECT_SYNC_SIZE );
   if( rank == get_output_rank() ){
       gl_debug[3] =  debug_flags;        /* source in 3, result in 0 */
       gl_debug[4] =  dry_run;            /* source in 4, result in 1 */
@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
   }
   /* round to 4 bytes */
   used_len = input_filename_len + ( 4 - input_filename_len%4 );
-  used_filename = shmalloc( used_len + 1 );
+  used_filename = shmem_malloc( used_len + 1 );
   if (rank  == get_output_rank()) {
       memcpy( used_filename, input_filename, input_filename_len+1 );
   }
@@ -237,7 +237,7 @@ int main(int argc, char* argv[])
   memcpy( input_filename, used_filename, input_filename_len );
   input_filename[input_filename_len] = '\0';
   
-  shfree( used_filename );
+  shmem_free( used_filename );
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI
 

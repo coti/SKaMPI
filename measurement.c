@@ -312,7 +312,7 @@ void init_synchronization(void)
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   static double gl_start, gl_start_res;
-  if( NULL == psync ) psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
+  if( NULL == psync ) psync = shmem_malloc( SHMEM_COLLECT_SYNC_SIZE );
   
   if( get_my_global_rank() == 0 ){
       gl_start = start_batch;
@@ -487,9 +487,9 @@ static void measurement_loop(struct term *t)
   int* pwork_i;
   double* gl_local_results;
   double* gl_my_results;
-  if( NULL == psync ) psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
-  pwork = shmalloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( double ) ) ;
-  pwork_i = shmalloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
+  if( NULL == psync ) psync = shmem_malloc( SHMEM_COLLECT_SYNC_SIZE );
+  pwork = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( double ) ) ;
+  pwork_i = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
 
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI2
@@ -536,10 +536,10 @@ static void measurement_loop(struct term *t)
 #ifdef SKAMPI_OPENSHMEM
 
    // will contain local_results = skampi_malloc_doubles(max_rep_hard_limit)
-  gl_local_results = shmalloc(max_rep_hard_limit * get_measurement_size() * sizeof( double ));
-  gl_my_results = shmalloc(max_rep_hard_limit  * sizeof( double ));
-  gl_invalid_s = shmalloc( max_rep_hard_limit  * sizeof( int ) );
-  gl_invalid_r = shmalloc( get_measurement_size() * max_rep_hard_limit * sizeof( int ) );
+  gl_local_results = shmem_malloc(max_rep_hard_limit * get_measurement_size() * sizeof( double ));
+  gl_my_results = shmem_malloc(max_rep_hard_limit  * sizeof( double ));
+  gl_invalid_s = shmem_malloc( max_rep_hard_limit  * sizeof( int ) );
+  gl_invalid_r = shmem_malloc( get_measurement_size() * max_rep_hard_limit * sizeof( int ) );
 
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI2
@@ -823,12 +823,12 @@ static void measurement_loop(struct term *t)
   free(local_results);
 #ifndef SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
-  shfree( pwork_i );
-  shfree( pwork );
-  shfree( gl_invalid_r );
-  shfree( gl_invalid_s );
-  shfree( gl_local_results );
-  shfree( gl_my_results );
+  shmem_free( pwork_i );
+  shmem_free( pwork );
+  shmem_free( gl_invalid_r );
+  shmem_free( gl_invalid_s );
+  shmem_free( gl_local_results );
+  shmem_free( gl_my_results );
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI2
 }
@@ -884,14 +884,14 @@ int execute_measurement(struct statement *s)
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   int* pwork;
 
-  if( NULL == psync ) psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
-  pwork = shmalloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
+  if( NULL == psync ) psync = shmem_malloc( SHMEM_COLLECT_SYNC_SIZE );
+  pwork = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
 
   shmem_int_max_to_all( &global_meas_buffer_too_small, &meas_buffer_too_small, 1, 0,
                         0, get_measurement_size(), pwork, psync );
   shmem_quiet();
 
-  shfree( pwork );
+  shmem_free( pwork );
 
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI2

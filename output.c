@@ -198,7 +198,7 @@ void flush_output(void)
  MPI_Status status;
 #else
 #ifdef SKAMPI_OPENSHMEM
-  char* shared_output = shmalloc( initial_buffer_size );
+  char* shared_output = shmem_malloc( initial_buffer_size );
   static int nb_to_send, read_done;
   int to_recv;
 #endif // SKAMPI_OPENSHMEM

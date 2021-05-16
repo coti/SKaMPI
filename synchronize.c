@@ -129,17 +129,17 @@ void print_global_time_differences(void)
   double* gl_tds;
   double* gl_tds_all;
   
-  psync = shmalloc( SHMEM_COLLECT_SYNC_SIZE );
-  gl_tds_all = shmalloc( get_global_size()*get_global_size() * sizeof( double) );
-  gl_tds = shmalloc( get_global_size() * sizeof(double ) );
+  psync = shmem_malloc( SHMEM_COLLECT_SYNC_SIZE );
+  gl_tds_all = shmem_malloc( get_global_size()*get_global_size() * sizeof( double) );
+  gl_tds = shmem_malloc( get_global_size() * sizeof(double ) );
 
   memcpy( gl_tds, tds, get_global_size() * sizeof(double ) );
   shmem_collect64( gl_tds_all, gl_tds, get_global_size(), 0, 0, get_global_size(), psync );
   memcpy( all_tds, gl_tds_all, get_global_size()*get_global_size() * sizeof(double ) );
   
-  shfree( gl_tds );
-  shfree( gl_tds_all );
-  shfree( psync );
+  shmem_free( gl_tds );
+  shmem_free( gl_tds_all );
+  shmem_free( psync );
 
 #endif // SKAMPI_OPENSHMEM
 #endif // SKAMPI_MPI
