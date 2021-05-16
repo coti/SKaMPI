@@ -18,7 +18,13 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -33,7 +39,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include "output.h"
 #include "exec.h"
 #include "debug.h"
-
 
 static FILE *output_file;
 
@@ -52,7 +57,9 @@ static int output_index;
 static char **recv_output_buffers;
 static int *recv_sizes;
 static int *recv_indexes;
+#ifdef SKAMPI_MPI
 static MPI_Request *recv_reqs;
+#endif
 
 static bool sort_results = False;
 static struct variable *loopvar;
@@ -76,16 +83,30 @@ void init_output(void)
   int i, flag;
   int *mpi_io_ptr;
 
+#ifdef SKAMPI_MPI
   MPI_Comm_dup(MPI_COMM_WORLD, &output_comm);
+#endif
 
   /* 3 loop variables, some constant stuff and node times */
   initial_buffer_size = 3*25 + 37 + 10*get_global_size();
 
+#ifdef SKAMPI_MPI
 #if MPI_VERSION < 2
   MPI_Attr_get(MPI_COMM_WORLD, MPI_IO, &mpi_io_ptr, &flag);
 #else
   MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_IO, &mpi_io_ptr, &flag);
 #endif
+#else // SKAMPI_MPI
+  
+  flag = 0;
+  output_rank = 0;
+  everybody_can_do_io = True;
+  i_can_do_io = True;
+
+#endif // SKAMPI_MPI
+
+  
+#ifdef SKAMPI_MPI
 
   if( flag == 0 ) {
     everybody_can_do_io = False;
@@ -106,6 +127,7 @@ void init_output(void)
   } else 
     MPI_Allreduce(mpi_io_ptr, &output_rank, 1, MPI_INT, MPI_MIN, 
 		  MPI_COMM_WORLD);
+#endif // SKAMPI_MPI
 
 
   /* @@ optimize for everybody_can_do_io && output_file == stdout? */
@@ -114,7 +136,9 @@ void init_output(void)
     recv_output_buffers = skampi_malloc_charps(get_global_size());
     recv_sizes = skampi_malloc_ints(get_global_size());
     recv_indexes = skampi_malloc_ints(get_global_size());
+#ifdef SKAMPI_MPI
     recv_reqs = skampi_malloc_reqs(get_global_size());
+#endif // SKAMPI_MPI
     for( i = 0; i < get_global_size(); i++) {
       recv_sizes[i] = initial_buffer_size;
       recv_output_buffers[i] = skampi_malloc_chars(recv_sizes[i]);
@@ -170,19 +194,28 @@ void flush_output(void)
   int total_size;
   char *output_line;
   double key;
-  MPI_Status status;
+#ifdef SKAMPI_MPI
+ MPI_Status status;
+#else
+#ifdef SKAMPI_OPENSHMEM
+  char* shared_output = shmalloc( initial_buffer_size );
+  static int nb_to_send, read_done;
+  int to_recv;
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   np = get_global_size();
 
   if( get_my_global_rank() == output_rank ) { /* receive outputs */
+#ifdef SKAMPI_MPI
     still_to_complete = np-1;
     for( i = 0; i < np; i++ ) {
       recv_indexes[i] = 0;
       if( i == output_rank )
-	recv_reqs[i] = MPI_REQUEST_NULL;
+          recv_reqs[i] = MPI_REQUEST_NULL;
       else {
-	MPI_Irecv(recv_output_buffers[i], initial_buffer_size, MPI_CHAR, i, 
-		  0, output_comm, &(recv_reqs[i]));
+          MPI_Irecv(recv_output_buffers[i], initial_buffer_size, MPI_CHAR, i, 
+                    0, output_comm, &(recv_reqs[i]));
       }
     }
 
@@ -191,19 +224,84 @@ void flush_output(void)
       MPI_Get_count(&status, MPI_CHAR, &received_chars);
       recv_indexes[got_from] += received_chars;
       if( received_chars == initial_buffer_size ) {
-	if( recv_indexes[got_from] >= recv_sizes[got_from] ) {
-	  recv_sizes[got_from] += initial_buffer_size;
-	  recv_output_buffers[got_from] = 
-	    realloc(recv_output_buffers[got_from], 
-		    recv_sizes[got_from]);
-	  assert( recv_output_buffers[got_from] != NULL );
-	}
-	MPI_Irecv(&(recv_output_buffers[got_from][recv_indexes[got_from]]), 
-		  initial_buffer_size, MPI_CHAR, got_from, 0, output_comm, 
-		  &(recv_reqs[got_from]));
+          if( recv_indexes[got_from] >= recv_sizes[got_from] ) {
+              recv_sizes[got_from] += initial_buffer_size;
+              recv_output_buffers[got_from] = 
+                  realloc(recv_output_buffers[got_from], 
+                          recv_sizes[got_from]);
+              assert( recv_output_buffers[got_from] != NULL );
+          }
+          MPI_Irecv(&(recv_output_buffers[got_from][recv_indexes[got_from]]), 
+                    initial_buffer_size, MPI_CHAR, got_from, 0, output_comm, 
+                    &(recv_reqs[got_from]));
       } else 
-	still_to_complete--;
+          still_to_complete--;
     }
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+
+    shmem_barrier_all();
+    still_to_complete = 0;
+    for( got_from = 0; got_from < np; got_from++ ) {
+        recv_indexes[got_from] = 0;
+        if( got_from != output_rank ){
+            to_recv = shmem_int_atomic_fetch( &nb_to_send, got_from );            
+            recv_sizes[got_from] = to_recv;
+
+            if( to_recv > 0 ) {
+                still_to_complete++;
+                shmem_char_get_nbi( recv_output_buffers[got_from], shared_output, to_recv, got_from );
+            }
+        }
+    }
+
+    //   printf( "Still to complete: %d\n", still_to_complete );
+    while( still_to_complete ) {
+        shmem_quiet(); 
+
+       for( got_from = 0; got_from < np; got_from++ ) {
+            
+            if( got_from != output_rank
+                &&  recv_sizes[got_from] > 0 ){
+
+                /* how much did I receive, is there anything left to receive */
+                recv_indexes[got_from] += recv_sizes[got_from];
+
+                if( recv_sizes[got_from] == initial_buffer_size ) {
+                    if( recv_indexes[got_from] >= recv_sizes[got_from] ) {
+                        recv_sizes[got_from] += initial_buffer_size;
+                        recv_output_buffers[got_from] = 
+                            realloc( recv_output_buffers[got_from], 
+                                     recv_sizes[got_from] );
+                        assert( recv_output_buffers[got_from] != NULL );
+                    }
+                    
+                    /* Tell the remote process I am ready to receive what is next */
+                    int r_done;
+                    r_done = shmem_int_atomic_fetch( &read_done, got_from );
+                    
+                    /* Receive what is left */
+                    //     while( 0 != ( r_done = shmem_int_g( &read_done, got_from ) ) ){
+                    while( 0 != ( r_done = shmem_int_atomic_fetch( &read_done, got_from )) ){
+                        //while( 0 != r_done ) {
+                        usleep( 100 );
+                        //                        r_done =  shmem_int_g( &read_done, got_from );
+                    }
+                    
+                    to_recv = shmem_int_g( &nb_to_send,  got_from );
+                    recv_sizes[got_from] = to_recv;
+                    
+                    shmem_char_get_nbi( &(recv_output_buffers[got_from][recv_indexes[got_from]]), shared_output, to_recv, got_from );
+                
+                    
+                } else 
+                    still_to_complete--;
+            }
+        }
+    }
+    
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
     if( sort_results) {
       debug(DBG_AUTOREFINE, "flush_output(): save result for sorting\n");
@@ -252,6 +350,7 @@ void flush_output(void)
     }
 
   } else {                                    /* send outputs */
+#ifdef SKAMPI_MPI
     j = 0;
     for( i = 0 ; i <= output_index; i += initial_buffer_size ) { /* output_index >= 0 */
       j = imin2(output_index+1-i, initial_buffer_size);
@@ -261,9 +360,50 @@ void flush_output(void)
     if (j == initial_buffer_size) 
       MPI_Send(&(output_buffer[i]), 0, MPI_CHAR, output_rank, 0, output_comm);
     
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+
+    nb_to_send = imin2(output_index+1, initial_buffer_size);
+    
+    /* Copy the first chunk */
+    memcpy( shared_output, output_buffer, nb_to_send );
+    read_done = 0;
+
+    /* The communications can start */
+    
+    shmem_barrier_all();
+    
+    if( nb_to_send > 0 ){
+
+        i = initial_buffer_size;
+        while(i <= output_index ){
+            /* Wait until the other process has read the data */
+            shmem_int_wait_until( &read_done, SHMEM_CMP_NE, 0 );
+            /* Copy the next chunk */
+            nb_to_send = imin2( output_index+1-i, initial_buffer_size );
+            memcpy( shared_output, &(output_buffer[i]), nb_to_send );
+
+            i += initial_buffer_size;
+            read_done = 0;
+        }
+    }
+
+
+    nb_to_send = 0;
+    
+    /* Done */
+    
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
     output_index = 0;
     output_buffer[0] = '\0';
   }
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  shmem_free( shared_output );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 }
 
 void register_output_for_sorting(struct statement *s)
