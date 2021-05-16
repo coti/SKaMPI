@@ -32,13 +32,8 @@ void tini_shmem_reduce( int count ){
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-<<<<<<< HEAD
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-  pwrk  = (char*) malloc( max(count/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
   pwrk  = (char*) shmem_malloc( max(count/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) );
->>>>>>> f46b886... Shared array must be shared
 #endif
   init_synchronization();
 }
@@ -144,11 +139,7 @@ void tini_shmem_collect( int count ){
   source = (char*) shmem_malloc( count*size );
   target = (char*) shmem_malloc( count );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-<<<<<<< HEAD
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync  = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
 #endif
   init_synchronization();
 }
@@ -254,11 +245,7 @@ void tini_shmem_alltoall( int count ){
   source = (char*) shmem_malloc( count*size );
   target = (char*) shmem_malloc( count*size );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-<<<<<<< HEAD
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync  = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
 #endif
   init_synchronization();
 }
@@ -379,11 +366,7 @@ void init_Shmem_Bcast_All( int count, int root, int iterations ){
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-<<<<<<< HEAD
-  psync = malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof( long ) );
->>>>>>> f46b886... Shared array must be shared
 #endif
   init_synchronization();
 }
@@ -447,11 +430,7 @@ void init_Shmem_Bcast_All_Synchro( int count, int root ){
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-<<<<<<< HEAD
   psync = malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
-  psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
 #endif
   init_synchronization();
 }
@@ -496,11 +475,7 @@ void init_Shmem_Bcast_All_Rounds( int count, int iterations ){
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-<<<<<<< HEAD
-  psync = malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
 #endif
   init_synchronization();
 }
@@ -546,11 +521,7 @@ void init_Shmem_Bcast_All_SK( int count, int root, int iterations ){
   ack    = (int*)  shmem_malloc( sizeof( int ) );
   *ack = 0;
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-<<<<<<< HEAD
-  psync = malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
 #endif
   init_synchronization();
 }
@@ -966,11 +937,7 @@ double measure_Shmem_Barrier_Consecutive( int iterations ){
 /*---------------------------------------------------------------------------*/
  
 void init_Shmem_Barrier_Half() {
-<<<<<<< HEAD
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
   size = shmem_n_pes();
   init_synchronization();
 }
@@ -990,11 +957,7 @@ double measure_Shmem_Barrier_Half(){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Barrier_Half_Consecutive( int iterations ) {
-<<<<<<< HEAD
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
   size = shmem_n_pes();
   init_synchronization();
 }
@@ -1053,11 +1016,7 @@ double measure_Shmem_Sync_Consecutive(int iterations ){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Sync_Half() {
-<<<<<<< HEAD
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
   size = shmem_n_pes();
   init_synchronization();
 }
@@ -1077,11 +1036,7 @@ double measure_Shmem_Sync_Half(){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Sync_Half_Consecutive( int iterations ) {
-<<<<<<< HEAD
-  psync = (char*) malloc( SHMEM_BCAST_SYNC_SIZE );
-=======
   psync = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE*sizeof(long) );
->>>>>>> f46b886... Shared array must be shared
   size = shmem_n_pes();
   init_synchronization();
 }
