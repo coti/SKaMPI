@@ -255,7 +255,7 @@ sub help
   --dir=<name>        specify the name of a directory, from which ALL files with
                       names ending with '.c' will be parsed (default: .)
                       this option is only used if no files are specified via --file
-  --excl=<name>       exclude files, for instance if a directory is assed with
+  --excl=<name>       exclude files, for instance if a directory is passed with
                       --dir=
 
   If --test is given, but no --file or --dir, then no files will be parsed.
@@ -331,7 +331,12 @@ sub parse_args
             push @files, $1;
         }
 	elsif ($arg =~ /--excl=(.*)/) {
-	    push @excl, $1;
+	    my $toto = $1;
+	    my @ex1 = split( " ", $toto );
+	    foreach my $fn (@ex1){
+		my @f1 = split( "/", $fn );
+		push @excl, $f1[@f1 - 1];
+	    }
         }
 	elsif ($arg =~ /--help$/) {
             help();
@@ -355,6 +360,10 @@ sub check_args
     my $i;
     my $j;
     my @cfiles;
+
+    my @fn;
+    my $end_fn;
+    
     if (0 == scalar @files) {
         if($dirname eq "" && ! $do_tests) { $dirname = "."; }
         if($dirname ne "") {
@@ -362,12 +371,13 @@ sub check_args
             @files = readdir $dir;
         }
     }
-    
     # there's almost certainly a better way for this, 
     # but I don't know perl well enough
     foreach $filename (@files) {
         if($dirname eq "") { $dirname = "."; }
-        if ($filename =~ /\.c$/ && !($filename ~~ @excl)) { # only parse .c files
+	@fn = split( "/", $filename );
+	$end_fn = $fn[ @fn - 1 ]; 
+        if ($filename =~ /\.c$/ && !($end_fn ~~ @excl)) { # only parse .c files
 	    push @cfiles, $filename;
         }
     }
@@ -536,7 +546,13 @@ sub output_file_header
  */
         
 #include <stdlib.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#else
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
+#endif
 
 #include "mpiversiontest.h"
         

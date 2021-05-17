@@ -13,7 +13,6 @@ MPI_MEASUREMENTS = \
 		measurements/io.c measurements/localio.c measurements/mmisc.c      \
 		measurements/node2node.c measurements/onesided.c measurements/pt2pt.c
 
-
 OPENSHMEM_MEASUREMENTS = \
 		measurements/openshmem.c        measurements/openshmem_atomic.c   \
 		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c      \
@@ -62,10 +61,10 @@ else
 EXCLUDE_M = --excl="$(MPI_MEASUREMENTS)"
 endif
 else
-if !ENABLE_MPI
-EXCLUDE_M = "--excl=$(OPENSHMEM_MEASUREMENTS)"
+if ENABLE_MPI
+EXCLUDE_M = --excl="$(OPENSHMEM_MEASUREMENTS)"
 else
-EXCLUDE_M = "--excl=$(OPENSHMEM_MEASUREMENTS) $(MPI_MEASUREMENTS)"
+EXCLUDE_M = --excl="$(OPENSHMEM_MEASUREMENTS) $(MPI_MEASUREMENTS)"
 endif
 endif
 
