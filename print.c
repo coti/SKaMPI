@@ -22,7 +22,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#else
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
+#endif
 
 #include "misc.h"
 #include "private_misc.h"
@@ -31,6 +37,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include "exec.h"
 #include "symboltable.h"
 #include "print.h"
+
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+extern long* psync;
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
 static void fprintf_comm(FILE *f, MPI_Comm comm);
 static void print_output_comm(MPI_Comm comm);
@@ -253,50 +265,113 @@ void fprint_statement(FILE *f, struct statement *s)
 
 void fprintf_comm(FILE *f, MPI_Comm comm)
 {
-  int i, size, rank, *ranks = NULL, global_rank;
+    int i, size, rank;
+    int* ranks = NULL;
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+    static
+#endif
+#endif
+    int global_rank;
  
   if( comm != MPI_COMM_NULL ) {
-    
+#ifdef SKAMPI_MPI
     MPI_Comm_rank(comm, &rank);
+#else
+#ifdef SKAMPI_OPENSHMEM
+    rank = shmem_my_pe();
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
     global_rank = get_my_global_rank();
     if( rank == 0 ) {
-      MPI_Comm_size(comm, &size);
-      ranks = skampi_malloc_ints(size);
+#ifdef SKAMPI_MPI
+        MPI_Comm_size(comm, &size);
+        ranks = skampi_malloc_ints(size);
+#else
+#ifdef SKAMPI_OPENSHMEM
+        size = shmem_n_pes();
+        ranks = (int*) shmem_malloc( size * sizeof( int ) );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
     }
-
+    
+#ifdef SKAMPI_MPI
     MPI_Gather(&global_rank, 1, MPI_INT, ranks, 1, MPI_INT, 0, comm);
+#else
+#ifdef SKAMPI_OPENSHMEM
+    shmem_collect32( ranks, &global_rank, 1, 0, 0, get_global_size(), psync );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
     if( rank == 0 ) {
       fprintf(f, "[%d", ranks[0]);
       for( i = 1; i < size; i++)
 	fprintf(f, ", %d", ranks[i]);
       fprintf(f, "]");
+#ifdef SKAMPI_MPI
       free(ranks);
+#else
+#ifdef SKAMPI_OPENSHMEM
+      shmem_free( ranks );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
     }
   }
 }
 
 void print_output_comm(MPI_Comm comm)
 {
-  int i, size, rank, *ranks = NULL, global_rank;
- 
+     int i, size, rank, *ranks = NULL;
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+    static
+#endif
+#endif
+    int global_rank;
+
   if( comm != MPI_COMM_NULL ) {
-    
+#ifdef SKAMPI_MPI
     MPI_Comm_rank(comm, &rank);
+#else
+#ifdef SKAMPI_OPENSHMEM
+    rank = shmem_my_pe();
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
     global_rank = get_my_global_rank();
     if( rank == 0 ) {
-      MPI_Comm_size(comm, &size);
-      ranks = skampi_malloc_ints(size);
+#ifdef SKAMPI_MPI
+        MPI_Comm_size(comm, &size);
+        ranks = skampi_malloc_ints(size);
+#else
+#ifdef SKAMPI_OPENSHMEM
+        size = shmem_n_pes();
+        ranks = (int*) shmem_malloc( size * sizeof( int ) );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
     }
 
+#ifdef SKAMPI_MPI
     MPI_Gather(&global_rank, 1, MPI_INT, ranks, 1, MPI_INT, 0, comm);
+#else
+#ifdef SKAMPI_OPENSHMEM
+    shmem_collect32( ranks, &global_rank, 1, 0, 0, get_global_size(), psync );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
     if( rank == 0 ) {
       print_output("[%d", ranks[0]);
       for( i = 1; i < size; i++)
 	print_output(", %d", ranks[i]);
       print_output("]\n");
+#ifdef SKAMPI_MPI     
       free(ranks);
+#else
+#ifdef SKAMPI_OPENSHMEM
+      shmem_free( ranks );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
     }
   }
 }
