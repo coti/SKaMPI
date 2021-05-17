@@ -21,7 +21,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
 #include <assert.h>
 
 #include "misc.h"
@@ -29,6 +34,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include "debug.h"
 #include "output.h"
 #include "exec.h"
+
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+extern long* psync;
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
 
 static struct variable *loopvar;
 
@@ -591,6 +603,13 @@ void register_measurement_result(double result)
 
 bool set_new_loop_values(void)
 {
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+    static int iv;
+    static double dv;
+    static
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI   
   int continue_loop;
 
   if( lrootproc() ) {
@@ -614,6 +633,7 @@ bool set_new_loop_values(void)
       continue_loop = False;
   }
   
+#ifdef SKAMPI_MPI
   MPI_Bcast(&continue_loop, 1, MPI_INT, 0, get_measurement_comm()); /* @@ optimize! */
   if( continue_loop ) {
     if( using_int_params )
@@ -621,6 +641,24 @@ bool set_new_loop_values(void)
     else
       MPI_Bcast(&loopvar->u.doublev, 1, MPI_DOUBLE, 0, get_measurement_comm());
   }
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
+  shmem_broadcast32( &continue_loop, &continue_loop, 1, 0, 0, 0, get_measurement_size(), psync );
+  if( continue_loop ) {
+      if( using_int_params ){
+          iv = loopvar->u.intv;
+          shmem_broadcast32( &iv, &iv, 1, 0, 0, 0, get_measurement_size(), psync );
+          loopvar->u.intv = iv;
+      } else {
+          dv = loopvar->u.doublev;
+          shmem_broadcast64( &dv, &dv, 1, 0, 0, 0, get_measurement_size(), psync );
+          loopvar->u.doublev = dv;
+      }
+  }
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   return continue_loop;
 }
