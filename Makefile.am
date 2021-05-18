@@ -5,12 +5,12 @@ AM_YFLAGS = -d
 BUILT_SOURCES = lex.yy.c parser.c parser.h m.c
 CLEANFILES = lex.yy.c parser.c parser.h m.c
 
-MEASUREMENTS = 
+MEASUREMENTS = measurements/helpers.c
 
 MPI_MEASUREMENTS = \
-		measurements/bug.c measurements/coll.c measurements/datatypes.c    \
-		measurements/delayed.c measurements/demo.c measurements/helpers.c  \
-		measurements/io.c measurements/localio.c measurements/mmisc.c      \
+		measurements/bug.c       measurements/coll.c     measurements/datatypes.c \
+		measurements/delayed.c   measurements/demo.c                              \
+		measurements/io.c        measurements/localio.c  measurements/mmisc.c     \
 		measurements/node2node.c measurements/onesided.c measurements/pt2pt.c
 
 OPENSHMEM_MEASUREMENTS = \

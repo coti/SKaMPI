@@ -1,8 +1,11 @@
 #ifdef SKAMPI_OPENSHMEM
 
-#include <mpi.h>
 #include <shmem.h>
 #include <stdlib.h>
+#ifdef SKAMPI_MPI
+/* This must come before mpiversiontest.h which must come before the other ones */
+#include <mpi.h> 
+#endif
 #include "../mpiversiontest.h"
 #include <unistd.h> // for usleep
 

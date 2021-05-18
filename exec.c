@@ -23,7 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <string.h>
 #include <assert.h>
 #include <math.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif
 
 #include "mpiversiontest.h"
 
@@ -36,6 +38,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include "print.h"
 #include "measurement.h"
 #include "autorefine.h"
+
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+extern long* psync;
+#endif
+#endif
 
 
 /* @@@ function shouldn't be needed !!! @@@@ */
@@ -148,6 +156,7 @@ void decrease_reference(struct variable *v)
       else
 	debug(DBG_EXEC, "decrease_reference: freeing '%s'\n", v->name);
       switch( v->type ) {
+#ifdef SKAMPI_MPI
       case TYPE_DATATYPE: 
 	if( v->u.datatypev == MPI_DATATYPE_NULL )
 	  error_without_abort("trying to free an MPI_Datatype object with value MPI_DATATYPE_NULL\n");
@@ -157,6 +166,7 @@ void decrease_reference(struct variable *v)
       case TYPE_COMM    : 
 	if( v->u.commv != MPI_COMM_NULL ) MPI_Comm_free(&(v->u.commv)); 
 	break;
+#endif // SKAMPI_MPI
       case TYPE_IARRAY  : 
 	if( v->u.iarrv.v != NULL) free(v->u.iarrv.v);
         v->u.iarrv.v = NULL;
@@ -181,22 +191,24 @@ void decrease_reference(struct variable *v)
         /*if (v->ref_counters != NULL) free(v->ref_counters);
         v->ref_counters = NULL;*/
         break;
+#ifdef SKAMPI_MPI
       case TYPE_OP      : 
-	if( v->u.opv == MPI_OP_NULL )
-	  error_without_abort("trying to free an MPI_Op object with value MPI_OP_NULL\n");
-	else
-	  MPI_Op_free(&(v->u.opv)); 
-	break;
+          if( v->u.opv == MPI_OP_NULL )
+              error_without_abort("trying to free an MPI_Op object with value MPI_OP_NULL\n");
+          else
+              MPI_Op_free(&(v->u.opv)); 
+          break;
+#endif // SKAMPI_MPI
 #ifdef USE_MPI_INFO
       case TYPE_INFO    : 
-	if( v->u.infov == MPI_INFO_NULL )
-	  error_without_abort("trying to free an MPI_Info object with value MPI_INFO_NULL\n");
-	else
-	  MPI_Info_free(&(v->u.infov)); 
-	break;
+          if( v->u.infov == MPI_INFO_NULL )
+              error_without_abort("trying to free an MPI_Info object with value MPI_INFO_NULL\n");
+          else
+              MPI_Info_free(&(v->u.infov)); 
+          break;
 #endif
       default:
-	error_without_abort("out of cases in exec.c__decrease_reference() v->type = %d\n", v->type);
+          error_without_abort("out of cases in exec.c__decrease_reference() v->type = %d\n", v->type);
       }
       free(v->ref_counter);
       v->ref_counter = NULL;
@@ -429,6 +441,19 @@ static void cast_variable(enum var_type type, struct variable *v)
 	  );
     return;
   }
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  if( v->type == TYPE_COMM) { /* TMP TMP TMP */
+      /* This is very temporary for OpenSHMEM (as the infrastructure, 
+         not for the measurements). Since we are not handling the notion
+         of communicator in OpenSHMEM, we need to "consume" it here.
+       */
+    v->type = TYPE_INTEGER;
+    v->u.intv = 0;
+    return;
+  } /* end TMP */
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
   error_with_abort(13, "can't cast variable of type %s to parameter of type %s\n", var_type_to_string(v->type), var_type_to_string(type)); 
 }
 
@@ -673,6 +698,13 @@ void execute_statement(struct statement *s)
 {
   struct variable tmp;
   struct term *t;
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  int* pwork;
+  pwork = (int*)shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
+  static      
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
   int error_code, local_abort_inner_loop;
 
   while( s != NULL ) {
@@ -707,8 +739,17 @@ void execute_statement(struct statement *s)
     case ST_MEASURE: 
       error_code = execute_measurement(s);
       local_abort_inner_loop = error_code & (MEAS_BUFFER_TOO_SMALL | MEAS_OUT_OF_BOUNDS);
+#ifdef SKAMPI_MPI
       MPI_Allreduce(&local_abort_inner_loop, &abort_inner_loop, 
 		    1, MPI_INT, MPI_BOR, MPI_COMM_WORLD);
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  
+      shmem_int_or_to_all( &abort_inner_loop, &local_abort_inner_loop, 1, 0, 0, get_measurement_size(), pwork, psync );
+      shmem_quiet();
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
       break;
     case ST_ARITHM_VAR: {
       struct variable first, last, step, multipleof;
@@ -882,5 +923,10 @@ void execute_statement(struct statement *s)
     
     s = s->next;
   }
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  shmem_free( pwork );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 }
 

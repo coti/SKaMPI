@@ -19,7 +19,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 #include <stdio.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#else
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
+#endif
 #include <assert.h>
 
 #include "misc.h"
@@ -27,6 +33,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include "private_misc.h"
 #include "output.h"
 #include "accounting.h"
+
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+extern long* psync;
+#endif
+#endif
 
 /*
 
@@ -127,7 +139,15 @@ void init_user_accounting(void)
 
 void print_global_acc_info(void)
 {
-  double single_times[Number_acc_times], sums[Number_acc_times];
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  double* pwork;
+  pwork = (double*)shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( double ) ) ;
+
+  static
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+ double single_times[Number_acc_times], sums[Number_acc_times];
   double total;
   int i;
 
@@ -139,8 +159,17 @@ void print_global_acc_info(void)
   single_times[5] = acc_wait_time;
   single_times[6] = acc_sync_time;
 
+#ifdef SKAMPI_MPI
   MPI_Reduce(single_times, sums, Number_acc_times, MPI_DOUBLE, MPI_SUM, 
 	     0, MPI_COMM_WORLD);
+#else
+#ifdef SKAMPI_OPENSHMEM
+  
+  shmem_double_sum_to_all( sums, single_times, 6, 0, 0, get_measurement_size(), pwork, psync );
+  shmem_quiet();
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   for( i = 1, total = 0.0 ; i < Number_acc_times; i++) total += sums[i];
 
@@ -162,6 +191,14 @@ void print_global_acc_info(void)
 
 void print_user_acc_info(void)
 {
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  double* pwork;
+  pwork = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( double ) ) ;
+
+  static
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
   double single_times[Number_acc_times], sums[Number_acc_times];
   double total;
   int i;
@@ -174,8 +211,17 @@ void print_user_acc_info(void)
   single_times[5] = user_acc_wait_time;
   single_times[6] = user_acc_sync_time;
 
+#ifdef SKAMPI_MPI
   MPI_Reduce(single_times, sums, Number_acc_times, MPI_DOUBLE, MPI_SUM, 
 	     0, MPI_COMM_WORLD);
+#else // SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  
+  shmem_double_sum_to_all( sums, single_times, 6, 0, 0, get_measurement_size(), pwork, psync );
+  shmem_quiet();
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   for( i = 1, total = 0.0 ; i < Number_acc_times; i++) total += sums[i];
 
@@ -193,6 +239,11 @@ void print_user_acc_info(void)
     print_output("# total time         = %7.3f 100.0%%\n", sums[0]);
     print_output("#\n");
   }
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+  shmem_free( pwork );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 }
 
 /*----------------------------------------------------------------------------*/
@@ -201,7 +252,7 @@ static double sync_time;
 
 double acc_start_sync(void)
 {
-  sync_time = MPI_Wtime();
+  sync_time = wtime();
   return sync_time;
 }
 
@@ -209,7 +260,7 @@ double acc_stop_sync(void)
 {
   double now;
 
-  now = MPI_Wtime();
+  now = wtime();
   if( acc_sync_time >= 0.0 ) acc_sync_time += now - sync_time;
   if( user_acc_sync_time >= 0.0 ) user_acc_sync_time += now - sync_time;
   return now - sync_time;
@@ -221,7 +272,7 @@ static double total_time;
 
 double acc_start_total(void)
 {
-  total_time = MPI_Wtime();
+  total_time = wtime();
   return total_time;
 }
 
@@ -229,7 +280,7 @@ double acc_stop_total(void)
 {
   double now;
 
-  now = MPI_Wtime();
+  now = wtime();
   if( acc_total_time >= 0.0 ) acc_total_time += now - total_time;
   if( user_acc_total_time >= 0.0 ) user_acc_total_time += now - total_time;
   return now - total_time;
@@ -270,7 +321,7 @@ static double unec_time;
 
 double acc_start_unec(void)
 {
-  unec_time = MPI_Wtime();
+  unec_time = wtime();
   return unec_time;
 }
 
@@ -278,7 +329,7 @@ double acc_stop_unec(void)
 {
   double now;
 
-  now = MPI_Wtime();
+  now = wtime();
   if( acc_unec_time >= 0.0 ) acc_unec_time += now - unec_time;
   if( user_acc_unec_time >= 0.0 ) user_acc_unec_time += now - unec_time;
   return now - unec_time;

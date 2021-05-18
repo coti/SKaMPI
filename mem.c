@@ -22,7 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif // SKAMPI_MPI
 
 #include "mpiversiontest.h"
 
@@ -72,15 +74,23 @@ static int increase_to_multiple_of(MPI_Aint x, int a) {
 
 static int alignment_fix(char *p, int a)
 {
+#ifdef SKAMPI_MPI
   MPI_Aint absolute_address;
+#else
+  unsigned long absolute_address;
+#endif // SKAMPI_MPI
   unsigned long address;
   int fix;
 
+#ifdef SKAMPI_MPI
 #if MPI_VERSION < 2
   MPI_Address(p, &absolute_address);
 #else
   MPI_Get_address(p, &absolute_address);
 #endif
+#else
+  absolute_address = (unsigned long)p;
+#endif // SKAMPI_MPI
   /* actually, the MPI standard doesn't guarantee to return an absolute 
      address, but an address relative to MPI_BOTTOM, but we hope that that
      is useful enough for alignment purposes, portable suggestions for 
@@ -106,7 +116,7 @@ static int alignment_fix(char *p, int a)
       fix = fix+a;
   }
 
-  debug(DBG_BUFFER, "alignment_fix(p=0x%x=%d, a=0x%x=%d) = 0x%x=%d\n", (int) p, (int) p, a, a, fix, fix);
+  debug(DBG_BUFFER, "alignment_fix(p=0x%x=%d, a=0x%x=%d) = 0x%x=%d\n", (int*) p, (int) *p, a, a, fix, fix);
   return fix;
 }
 
@@ -115,6 +125,7 @@ static char *align_ptr(char *p, int a)
   return p + alignment_fix(p, a);
 }
 
+#ifdef SKAMPI_MPI
 MPI_Aint get_extent(int count, MPI_Datatype datatype)
 {
   MPI_Aint extent;
@@ -141,6 +152,7 @@ MPI_Aint get_true_extent(int count, MPI_Datatype datatype)
   return count*true_extent;
 }
 #endif
+#endif // SKAMPI_MPI
 
 static void discard_cache(void)
 {

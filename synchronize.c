@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation
@@ -18,8 +21,12 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif
+#ifdef SKAMPI_OPENSHMEM
 #include <shmem.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -40,14 +47,14 @@ double *ping_pong_min_time; /* ping_pong_min_time[i] is the minimum time of one 
 double *tds;                /* tds[i] is the time difference between the 
 			       current node and global node i */
 
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifndef MPI_MAX_PROCESSOR_NAME
 #define MPI_MAX_PROCESSOR_NAME 256
 #endif
 #include <string.h>
 #endif
 
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
 extern long* psync;
 #endif
@@ -64,15 +71,6 @@ bool mpi_wtime_is_global;
 extern int wait_till(double time_stamp, double *last_time_stamp);
 extern double should_wait_till(int counter, double interval, double offset);
 
-void get_processor_name( char* name, int* namelen ){
-#ifdef SKAMPI_MPI2
-    MPI_Get_processor_name( name, &namelen );
-#else
-    gethostname( name, MPI_MAX_PROCESSOR_NAME ); 
-    *namelen = strlen( name );
-#endif
-}
-
 void init_synchronization_module(void)
 {
   int i, flag;
@@ -83,7 +81,7 @@ void init_synchronization_module(void)
   ping_pong_min_time = skampi_malloc_doubles(get_global_size());
   for( i = 0; i < get_global_size(); i++) ping_pong_min_time[i] = -1.0;
 
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
 #if MPI_VERSION < 2
   MPI_Attr_get(MPI_COMM_WORLD, MPI_WTIME_IS_GLOBAL, &mpi_wtime_is_global_ptr, &flag);
 #else
@@ -121,7 +119,7 @@ void print_global_time_differences(void)
   my_name[name_len] = '\0';
   pid = getpid();
 
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
   MPI_Gather(tds, get_global_size(), MPI_DOUBLE, 
 	     all_tds, get_global_size(), MPI_DOUBLE, 
 	     0, MPI_COMM_WORLD);
@@ -173,7 +171,7 @@ static void ping_pong(int p1, int p2)
   double my_time, my_last_time, other_time;
   double td_min, td_max;
   double invalid_time = -1.0;
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
   MPI_Status status;
 #else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
@@ -185,7 +183,7 @@ static void ping_pong(int p1, int p2)
 #endif // SKAMPI_MPI
   int pp_tag = 43;
 
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
 
   /* I had to unroll the main loop because I didn't find a portable way
      to define the initial td_min and td_max with INFINITY and NINFINITY */
@@ -389,21 +387,39 @@ void determine_time_differences(void)
   if( lrootproc() ) 
     start_time = acc_start_sync();
   else
-    start_time = MPI_Wtime();
+    start_time = wtime();
   logging(DBG_SYNC, "determine_time_differences\n");
   for( i = 1; i < get_measurement_size(); i++) {
+#ifdef SKAMPI_MPI
     MPI_Barrier(get_measurement_comm());
+#else
+#ifdef SKAMPI_OPENSHMEM
+    shmem_barrier_all();
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
     if( get_measurement_rank() == 0 || get_measurement_rank() == i ) 
       ping_pong(0,i);
   }
+#ifdef SKAMPI_MPI
   tmp_tds = skampi_malloc_doubles(get_measurement_size());
+#else 
+#ifdef SKAMPI_OPENSHMEM
+  tmp_tds = (double*) shmem_malloc( get_measurement_size()*sizeof( double) );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
   if( lrootproc() ) {
     for( i = 1; i < get_measurement_size(); i++) 
             tmp_tds[i] = tds[get_global_rank(i)];
   }
   
   assert(get_measurement_size() - 1 >= 0 );
+#ifdef SKAMPI_MPI
   MPI_Bcast(&(tmp_tds[1]), get_measurement_size()-1, MPI_DOUBLE, 0, get_measurement_comm());
+#else
+#ifdef SKAMPI_OPENSHMEM
+  shmem_broadcast64( &(tmp_tds[1]), &(tmp_tds[1]), get_measurement_size()-1, 0, 0, 0, get_measurement_size(), psync );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 
   if( get_measurement_rank() != 0 ) {
     logging(DBG_TIMEDIFF, "tds[%d] = %9.1f us\n", 
@@ -414,12 +430,19 @@ void determine_time_differences(void)
 	      get_global_rank(i), tds[get_global_rank(i)]*mult);
     }
   } 
-  free(tmp_tds);
+#ifdef SKAMPI_MPI
   MPI_Barrier(get_measurement_comm());
+  free(tmp_tds);
+#else
+#ifdef SKAMPI_OPENSHMEM
+  shmem_barrier_all(); // Not really necessary because there is one in shmem_free
+  shmem_free( tmp_tds ); 
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
   if( lrootproc() )
     finish_time = acc_stop_sync();
   else
-    finish_time = MPI_Wtime();
+    finish_time = wtime();
   rdebug(DBG_TIMEDIFF, "determine_time_differences() on %d processes: %f sec.\n", 
 	 get_measurement_size(), finish_time - start_time);
 }

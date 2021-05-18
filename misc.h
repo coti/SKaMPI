@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation
@@ -18,6 +21,12 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+#include "shmem_interface.h"
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
 
 enum {
   True = 1,
@@ -26,6 +35,7 @@ enum {
 
 typedef int bool;
 
+void get_processor_name( char*, int* );
 
 int get_my_global_rank(void);
 int get_global_rank(int m_rank);
@@ -33,7 +43,9 @@ int get_global_size(void);
 
 int get_measurement_rank(void);
 int get_measurement_size(void);
+#ifdef SKAMPI_MPI
 MPI_Comm get_measurement_comm(void);
+#endif // SKAMPI_MPI
 
 
 char *get_send_buffer(void);
@@ -89,9 +101,11 @@ double      *_mpi_malloc_doubles(int n, const char *_file, unsigned int _line);
 int         *_mpi_malloc_ints(int n, const char *_file, unsigned int _line);
 char        *_mpi_malloc_chars(int n, const char *_file, unsigned int _line);
 char       **_mpi_malloc_charps(int n, const char *_file, unsigned int _line);
+#ifdef SKAMPI_MPI
 MPI_Request *_mpi_malloc_reqs(int n, const char *_file, unsigned int _line);
 MPI_Offset  *_mpi_malloc_offsets(int n, const char *_file, unsigned int _line);
 MPI_Status  *_mpi_malloc_statuses(int n, const char *_file, unsigned int _line);
+#endif
 
 void mpi_free(void *);
 
@@ -100,15 +114,19 @@ void mpi_free(void *);
 #define skampi_malloc_ints(n)      _skampi_malloc_ints((n), __FILE__, __LINE__)
 #define skampi_malloc_chars(n)     _skampi_malloc_chars((n), __FILE__, __LINE__)
 #define skampi_malloc_charps(n)    _skampi_malloc_charps((n), __FILE__, __LINE__)
+#ifdef SKAMPI_MPI
 #define skampi_malloc_reqs(n)      _skampi_malloc_reqs((n), __FILE__, __LINE__)
 #define skampi_malloc_offsets(n)   _skampi_malloc_offsets((n), __FILE__, __LINE__)
 #define skampi_malloc_statuses(n)  _skampi_malloc_statuses((n), __FILE__, __LINE__)
+#endif
 
 void        *_skampi_malloc(int size , const char *_file, unsigned int _line);
 double      *_skampi_malloc_doubles(int n, const char *_file, unsigned int _line);
 int         *_skampi_malloc_ints(int n, const char *_file, unsigned int _line);
 char        *_skampi_malloc_chars(int n, const char *_file, unsigned int _line);
 char       **_skampi_malloc_charps(int n, const char *_file, unsigned int _line);
+#ifdef SKAMPI_MPI
 MPI_Request *_skampi_malloc_reqs(int n, const char *_file, unsigned int _line);
 MPI_Offset  *_skampi_malloc_offsets(int n, const char *_file, unsigned int _line);
 MPI_Status  *_skampi_malloc_statuses(int n, const char *_file, unsigned int _line);
+#endif

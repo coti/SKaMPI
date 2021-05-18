@@ -63,10 +63,8 @@ int measurement_num;
 SourceBuf source_buf;
 bool log_source;
 
-#ifndef SKAMPI_MPI2
 #ifdef SKAMPI_OPENSHMEM
 long* psync = NULL;
-#endif
 #endif
 
 void print_version_info(void)
@@ -117,7 +115,11 @@ int main(int argc, char* argv[])
   init_globals();
   init_output();
 
-  if( get_my_global_rank() == get_output_rank() ) {
+#ifdef SKAMPI_OPENSHMEM
+  if( NULL == psync ) psync = (long*) shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof(long) );
+#endif // SKAMPI_OPENSHMEM
+
+ if( get_my_global_rank() == get_output_rank() ) {
 
     debug_flags = 0;
     dry_run = False;
@@ -189,7 +191,7 @@ int main(int argc, char* argv[])
 
   }
 
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
   MPI_Bcast(&debug_flags, 1, MPI_INT, get_output_rank(), MPI_COMM_WORLD); /* @@@ optimize!!! @@@ */
   MPI_Bcast(&dry_run, 1, MPI_INT, get_output_rank(), MPI_COMM_WORLD);
   MPI_Bcast(&input_filename_len, 1, MPI_INT, get_output_rank(), MPI_COMM_WORLD); 
@@ -208,7 +210,6 @@ int main(int argc, char* argv[])
   int size = shmem_n_pes();
   int rank = shmem_my_pe();
   
-  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof(long) );
   if( rank == get_output_rank() ){
       gl_debug[3] =  debug_flags;        /* source in 3, result in 0 */
       gl_debug[4] =  dry_run;            /* source in 4, result in 1 */
@@ -279,6 +280,7 @@ int main(int argc, char* argv[])
   finalize_ranks();
   
 #ifdef SKAMPI_OPENSHMEM
+  shmem_free( psync );
   shmem_finalize();
 #endif
 #ifdef SKAMPI_MPI

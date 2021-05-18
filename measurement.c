@@ -47,7 +47,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 static struct variable meas_params[MAX_NUMBER_PARAMS];
 
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
 extern long* psync;
 #endif
@@ -305,10 +305,10 @@ void init_synchronization(void)
     if( ! mpi_wtime_is_global ) determine_time_differences();
     if( lrootproc() ) start_batch = wtime();
     logging(DBG_SYNC, "---- new start_batch ----------------\n");
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
     MPI_Bcast(&start_batch, 1, MPI_DOUBLE, 0, get_measurement_comm());
     
-#else // SKAMPI_MPI2
+#else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   static double gl_start, gl_start_res;
@@ -325,7 +325,7 @@ void init_synchronization(void)
   }
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
   }
 }
 
@@ -339,13 +339,13 @@ double start_synchronization(void)
 #endif   
   switch( current_synchronization ) {
   case SYNC_BARRIER:
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
       MPI_Barrier(get_measurement_comm());
-#else // SKAMPI_MPI2
+#else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
       shmem_barrier_all();
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
     start_sync = wtime();
     break;
   case SYNC_REAL:
@@ -477,7 +477,7 @@ static void measurement_loop(struct term *t)
   bool stop;
   double *quantiles;
   double mult;
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   static int result_i[3], tosend_i[3];
   static double result_d, tosend_d;
@@ -492,7 +492,7 @@ static void measurement_loop(struct term *t)
   pwork_i = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
 
 #ifdef SKAMPI_USE_PAPI
     mult = 1e-6*unit_seconds;
@@ -532,7 +532,7 @@ static void measurement_loop(struct term *t)
   result_index = 0;
   start_not_yet_gathered_results = 0;
 
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
 
    // will contain local_results = skampi_malloc_doubles(max_rep_hard_limit)
@@ -542,7 +542,7 @@ static void measurement_loop(struct term *t)
   gl_invalid_r = shmem_malloc( get_measurement_size() * max_rep_hard_limit * sizeof( int ) );
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
 
   init_buffer();
   init_struct_variable(&spent_time, TYPE_VOID, NULL, NULL);
@@ -576,7 +576,7 @@ static void measurement_loop(struct term *t)
       }
     }
 
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
     MPI_Gatherv(&(local_results[start_not_yet_gathered_results]), 
 		result_index - start_not_yet_gathered_results, MPI_DOUBLE,
 		all_results, recv_counts, recv_displs, MPI_DOUBLE, 0, get_measurement_comm());
@@ -589,7 +589,7 @@ static void measurement_loop(struct term *t)
       
       MPI_Reduce(&stop_batch, &global_stop_batch, 1, MPI_DOUBLE, MPI_MAX, 0, get_measurement_comm());
     }
-#else // SKAMPI_MPI2
+#else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
 
     /* cf loop above: all the counts in the allgatherv have the same value */
@@ -629,7 +629,7 @@ static void measurement_loop(struct term *t)
     }
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
 
     if( lrootproc() ) { /* overwrite invalid results */ 
 
@@ -709,7 +709,7 @@ static void measurement_loop(struct term *t)
 	      std_error <= max_relative_standard_error*mean_value);
     }
     
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
     MPI_Bcast(&result_index, 1, MPI_INT, 0, get_measurement_comm());
     start_not_yet_gathered_results = result_index;
     MPI_Bcast(&stop, 1, MPI_INT, 0, get_measurement_comm());      /* @@@@ optimize */
@@ -729,7 +729,7 @@ static void measurement_loop(struct term *t)
       MPI_Bcast(&start_batch, 1, MPI_DOUBLE, 0, get_measurement_comm());
     }
 
-#else // SKAMPI_MPI2
+#else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
 
@@ -775,7 +775,7 @@ static void measurement_loop(struct term *t)
     }
     
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
  } while( !stop );
 
 
@@ -821,7 +821,7 @@ static void measurement_loop(struct term *t)
   }
   free(invalid);
   free(local_results);
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   shmem_free( pwork_i );
   shmem_free( pwork );
@@ -830,7 +830,7 @@ static void measurement_loop(struct term *t)
   shmem_free( gl_local_results );
   shmem_free( gl_my_results );
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
 }
 
 
@@ -838,13 +838,13 @@ int execute_measurement(struct statement *s)
 {
   struct variable comm;
   /*   struct variable init_error_code; */
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
   int meas_buffer_too_small, global_meas_buffer_too_small;
-#else // SKAMPI_MPI2
+#else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   static int meas_buffer_too_small, global_meas_buffer_too_small;
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
 
 
   global_meas_buffer_too_small = False;
@@ -875,11 +875,11 @@ int execute_measurement(struct statement *s)
 
     meas_buffer_too_small = is_buffer_too_small();
 
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
     MPI_Allreduce(&meas_buffer_too_small, &global_meas_buffer_too_small, 1, 
 		  MPI_INT, MPI_MAX, get_measurement_comm());
 
-#else // SKAMPI_MPI2
+#else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   int* pwork;
@@ -894,7 +894,7 @@ int execute_measurement(struct statement *s)
   shmem_free( pwork );
 
 #endif // SKAMPI_OPENSHMEM
-#endif // SKAMPI_MPI2
+#endif // SKAMPI_MPI
 
     if (lrootproc() && just_entered_measurement_block && global_meas_buffer_too_small) {
       error_without_abort("Warning !?\n"

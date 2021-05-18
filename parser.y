@@ -23,7 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif
 #include <string.h>
 
 #include "misc.h"
@@ -401,13 +403,13 @@ meas_statement_list0 END MEASUREMENT
 
   inside_measurement_block = False; 
   if( ! syntax_check_only ) {
-    if( get_my_global_rank() == get_output_rank() ) start_time = MPI_Wtime(); 
+    if( get_my_global_rank() == get_output_rank() ) start_time = wtime(); 
     execute_statement($5);
     flush_output();
     clear_locals(); 
     if( get_my_global_rank() == get_output_rank() ) {
       print_output("# end result \"%s\"\n", $3);
-      print_output("# duration = %4.2f sec\n\n", MPI_Wtime() - start_time);
+      print_output("# duration = %4.2f sec\n\n", wtime() - start_time);
     }
   } else {
     store_measurement_pos();	

@@ -21,7 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#else
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
+#endif
 #include <assert.h>
 #include <math.h>
 #include <string.h>
@@ -106,15 +112,30 @@ int func_get_np(void) /* deprecated */
 int func_get_comm_size(MPI_Comm comm)
 {
   int size;
-
+#ifdef SKAMPI_MPI
   MPI_Comm_size(comm, &size);
+#else
+#ifdef SKAMPI_OPENSHMEM
+  size = shmem_n_pes();
+#else
+  size = -1;
+#endif
+#endif
   return size;
 }
 
 int func_get_comm_rank(MPI_Comm comm)
 {
   int rank;
+#ifdef SKAMPI_MPI
   MPI_Comm_rank(comm, &rank);
+#else
+#ifdef SKAMPI_OPENSHMEM
+  rank = shmem_my_pe();
+#else
+  rank = -1;
+#endif
+#endif
   return rank;
 }
 
@@ -197,6 +218,7 @@ int func_max_int(int a, int b)
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef SKAMPI_MPI
 MPI_Comm func_comm(int i)
 {
   MPI_Comm newcomm;
@@ -318,6 +340,7 @@ MPI_Comm func_comm2_max_latency_with_root(void)
 
   return newcomm;
 }
+#endif // SKAMPI_MPI
 
 /*---------------------------------------------------------------------------*/
 
@@ -344,6 +367,7 @@ int cmp_v(const void *p1, const void *p2)
   return (a - b);
 }
 
+#ifdef SKAMPI_MPI
 MPI_Comm func_comm_rand(int n)
 {
   int i;
@@ -355,7 +379,7 @@ MPI_Comm func_comm_rand(int n)
 
   if (get_my_global_rank() == 0) {
 
-    time = MPI_Wtime();
+    time = wtime();
     time = time - (int) time;
     srand( ((unsigned int) (time*100000.0)) % UINT_MAX );
 
@@ -393,6 +417,7 @@ int func_is_mpi_comm_null(MPI_Comm comm)
 {
   return (comm == MPI_COMM_NULL);
 }
+#endif // SKAMPI_MPI
 
 /*---------------------------------------------------------------------------*/
 
@@ -402,8 +427,16 @@ char * func_mpi_processor_names(void)
   int rank, namelen;
   char * result_str;
 
+ #ifdef SKAMPI_MPI 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Get_processor_name(name, &namelen);
+#ifdef SKAMPI_OPENSHMEM
+  rank = shmem_my_pe();
+  gethostname( name, MPI_MAX_PROCESSOR_NAME ); 
+  namelen = strlen( name );
+#else
+#endif
+#endif
 
   result_str = skampi_malloc_chars(2+4+1+6+2+namelen+1);
   sprintf(result_str, "# rank %6d: ", rank);
@@ -414,6 +447,7 @@ char * func_mpi_processor_names(void)
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef SKAMPI_MPI
 MPI_Comm func_topology_cartesian(MPI_Comm c, IArray dims, IArray periodic, int reorder)
 {
   MPI_Comm newcomm;
@@ -480,6 +514,7 @@ MPI_Comm func_topology_graph2(MPI_Comm c, IArray graph, int reorder)
     
   return newcomm;
 }
+#endif // SKAMPI_MPI
 
 /*---------------------------------------------------------------------------*/
 
@@ -586,7 +621,7 @@ int func_get_random_int(int min_value, int max_value)
   
   assert(max_value >= min_value);
 
-  time = MPI_Wtime();
+  time = wtime();
   time = time - (int) time;
   
   srand( ((unsigned int) (time*(100000.0 + get_my_global_rank()*237.0))) % 

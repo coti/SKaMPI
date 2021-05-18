@@ -23,13 +23,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 #ifdef SKAMPI_MPI
 #include <mpi.h>
-#endif // SKAMPI_MPI
+#else
 #ifdef SKAMPI_OPENSHMEM
 #include <shmem.h>
 #endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 #if SKAMPI_USE_PAPI
 #include <papi.h>
 #endif
@@ -44,6 +46,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 /*---------------------------------------------------------------------------*/
 
+void get_processor_name( char* name, int* namelen ){
+#ifdef SKAMPI_MPI
+    MPI_Get_processor_name( name, namelen );
+#else
+    gethostname( name, MPI_MAX_PROCESSOR_NAME ); 
+    *namelen = strlen( name );
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int measurement_rank;
 static int measurement_size;
 static MPI_Comm measurement_comm;
@@ -52,7 +65,7 @@ static int global_rank;
 static int global_size;
 static int *global_ranks;
 
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
 extern long* psync;
 #endif
@@ -62,7 +75,7 @@ extern long* psync;
 void update_measurement_comm(MPI_Comm comm) 
 {
   measurement_comm = comm;
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
   MPI_Comm_rank(measurement_comm, &measurement_rank);
   MPI_Comm_size(measurement_comm, &measurement_size);
   
@@ -70,17 +83,27 @@ void update_measurement_comm(MPI_Comm comm)
 		global_ranks, 1, MPI_INT, measurement_comm);
 #else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
-  
-  static int rank;
+
+  measurement_size = get_global_size();
+ 
 
   measurement_rank = shmem_my_pe();
   measurement_size = shmem_n_pes();
 
   if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof( long ) );
-  rank = measurement_rank;
+  int rank = measurement_rank;
+  /*  static int rank;
   
   shmem_collect32( global_ranks, &rank, 1, 0, 0, measurement_size, psync );
-
+  */
+  
+  /* We are not doing anything here, because the OpenSHMEM measurements
+     are always done on the global communicator. */
+  int i;
+  for( i = 0 ; i < measurement_size ; i++ ){
+      global_ranks[i] = i;
+  }
+  
 #else // SKAMPI_OPENSHMEM
 #warning "update_measurement_comm doing nothing"
 #endif // SKAMPI_OPENSHMEM
@@ -97,16 +120,18 @@ int get_measurement_size(void)
   return measurement_size;
 }
 
+#ifdef SKAMPI_MPI
 MPI_Comm get_measurement_comm(void)
 {
   return measurement_comm;
 }
+#endif // SKAMPI_MPI
 
 /*---------------------------------------------*/
 
 void init_globals(void)
 {
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &global_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &global_size);
     global_ranks = skampi_malloc_ints(global_size);
@@ -115,6 +140,11 @@ void init_globals(void)
     global_rank = shmem_my_pe();
     global_size = shmem_n_pes();
     global_ranks = shmem_malloc( measurement_size );
+    /* TODO since we are not really doing anything with these ranks,
+       do they really need to be on the shared heap? */
+    for( int i = 0 ; i < global_size ; i++ ){
+        global_ranks[i] = i;
+    }
 #else // SKAMPI_OPENSHMEM
 #warning "init_globals doing nothing"
 #endif // SKAMPI_OPENSHMEM
@@ -358,7 +388,7 @@ void *_mpi_malloc(MPI_Aint size, const char *_file, unsigned int _line)
 		      (int) size, _file, _line );
   }
 
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
 #ifdef USE_MPI_ALLOC_MEM
   if (use_mpi_memory_allocation) {
     errcode = MPI_Alloc_mem( size, get_mpi_alloc_mem_info(), &baseptr );
@@ -386,7 +416,7 @@ void *_mpi_malloc(MPI_Aint size, const char *_file, unsigned int _line)
 			"\nmpi_malloc: Caller in file %s at line %u\n",  
 			(size_t) size, strerror(errno), errno, _file, _line );
     }
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
 #ifdef USE_MPI_ALLOC_MEM
   }
 #endif // USE_MPI_ALLOC_MEM
@@ -478,7 +508,7 @@ void mpi_free(void *base)
 }
 
 void finalize_ranks(){
-#ifdef SKAMPI_MPI2
+#ifdef SKAMPI_MPI
   free( global_ranks );
 #else // SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM

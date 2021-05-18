@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation
@@ -20,7 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 #include <stdarg.h>
 #include <stdio.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif
 #include <unistd.h>
 
 #include "misc.h"
@@ -36,7 +41,7 @@ void init_debugging(void)
   int name_len, pid;
 
   if( debug_flags ) {
-    MPI_Get_processor_name(name, &name_len);
+    get_processor_name( name, &name_len );
     name[name_len] = '\0';
     pid = getpid();
 

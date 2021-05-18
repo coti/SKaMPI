@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation
@@ -454,7 +457,14 @@ void mpi_abort(int errorcode)
     fprintf(stderr, "\n");
     fflush(stderr);
   /* } */
-  MPI_Abort(MPI_COMM_WORLD, errorcode);
+#ifdef SKAMPI_MPI
+    MPI_Abort(MPI_COMM_WORLD, errorcode);
+#else
+#ifdef SKAMPI_OPENSHMEM
+    shmem_global_exit( errorcode );
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
 }
 
 void error_without_abort(char *fmt, ...)
