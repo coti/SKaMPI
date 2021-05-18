@@ -37,7 +37,12 @@ WSP [ \t]+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef SKAMPI_MPI
 #include <mpi.h>
+#endif
+#ifdef SKAMPI_OPENSHMEM
+#include <shmem.h>
+#endif
 #include <sys/stat.h>
 
 #include "misc.h"
@@ -56,6 +61,13 @@ extern char* current_filename;
 extern char* input_filename;
 extern char* input_path;
 extern int char_counter;
+
+#ifndef SKAMPI_MPI
+#ifdef SKAMPI_OPENSHMEM
+extern long* psync;
+#endif
+#endif
+
 
 void store_source(int leng, char* text)
 {
@@ -96,6 +108,11 @@ static char* include_filename(char* text)
 static void enter_file(char *fname)
 {
   char* buffer;
+#ifndef SKAMPI_MPI2
+#ifdef SKAMPI_OPENSHMEM
+  static
+#endif
+#endif
   int buffer_size;
   struct stat status;
   FILE* f;
@@ -126,10 +143,34 @@ static void enter_file(char *fname)
   }
 
   if (!syntax_check_only) {
+#ifdef SKAMPI_MPI
     MPI_Bcast(&buffer_size, 1, MPI_INT, get_output_rank(), MPI_COMM_WORLD);
     if (get_my_global_rank() != get_output_rank())
       buffer = skampi_malloc_chars(buffer_size);
     MPI_Bcast(buffer, buffer_size, MPI_CHAR, get_output_rank(), MPI_COMM_WORLD);
+#else /* TODO buffer is never freeed? */
+#ifdef SKAMPI_OPENSHMEM
+
+    /* We could have broadcast the size earlier and put the buffer in the symmetric 
+       heap earlier but this version is more readable */
+
+    shmem_broadcast32( &buffer_size, &buffer_size, 1, get_output_rank(), 0, 0, shmem_n_pes(), psync );
+
+    char* sym_buf = (char*) shmem_malloc( buffer_size );
+    if( get_my_global_rank() == get_output_rank() ){
+        memcpy( sym_buf, buffer, buffer_size );
+    }  
+    shmem_broadcast32( sym_buf, sym_buf, buffer_size/4, get_output_rank(), 0, 0, shmem_n_pes(), psync );
+     
+    if( get_my_global_rank() != get_output_rank() ){
+    buffer = skampi_malloc_chars(buffer_size);
+        memcpy( buffer, sym_buf, buffer_size );
+    }  
+    shmem_free( sym_buf );
+
+#endif // SKAMPI_OPENSHMEM
+#endif // SKAMPI_MPI
+
   }
 
   buffer_stack[stack_ptr] = yy_scan_buffer(buffer, buffer_size);
