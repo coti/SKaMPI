@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation
@@ -108,7 +111,7 @@ static char* include_filename(char* text)
 static void enter_file(char *fname)
 {
   char* buffer;
-#ifndef SKAMPI_MPI2
+#ifndef SKAMPI_MPI
 #ifdef SKAMPI_OPENSHMEM
   static
 #endif
@@ -153,19 +156,22 @@ static void enter_file(char *fname)
 
     /* We could have broadcast the size earlier and put the buffer in the symmetric 
        heap earlier but this version is more readable */
-
+    
     shmem_broadcast32( &buffer_size, &buffer_size, 1, get_output_rank(), 0, 0, shmem_n_pes(), psync );
-
-    char* sym_buf = (char*) shmem_malloc( buffer_size );
+    
+    /* round the size to 4 bytes */
+    int used_size = buffer_size + ( 4 - buffer_size%4 );
+    
+    char* sym_buf = (char*) shmem_malloc( used_size );
     if( get_my_global_rank() == get_output_rank() ){
         memcpy( sym_buf, buffer, buffer_size );
-    }  
-    shmem_broadcast32( sym_buf, sym_buf, buffer_size/4, get_output_rank(), 0, 0, shmem_n_pes(), psync );
+    } 
+    shmem_broadcast32( sym_buf, sym_buf, used_size/4, get_output_rank(), 0, 0, shmem_n_pes(), psync );
      
     if( get_my_global_rank() != get_output_rank() ){
-    buffer = skampi_malloc_chars(buffer_size);
+        buffer = skampi_malloc_chars(buffer_size);
         memcpy( buffer, sym_buf, buffer_size );
-    }  
+    }
     shmem_free( sym_buf );
 
 #endif // SKAMPI_OPENSHMEM
