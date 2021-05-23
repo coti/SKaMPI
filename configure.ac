@@ -104,7 +104,7 @@ if test -n "$PAPIPATH"; then
 fi
 
 # Tells automake to create a Makefile
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile])
 
 # Generate the output
 AC_OUTPUT
