@@ -20,7 +20,7 @@
 
 
 bin_PROGRAMS = skampi
-ACLOCAL_AMFLAGS=-I config 
+ACLOCAL_AMFLAGS=-I m4 
 AM_YFLAGS = -d
 
 BUILT_SOURCES = lex.yy.c parser.c parser.h m.c
