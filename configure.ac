@@ -22,7 +22,7 @@
 AC_INIT([skampi], [6.0])
 
 # Safety checks in case user overwritten --srcdir
-AC_CONFIG_SRCDIR([main.c])
+AC_CONFIG_SRCDIR([src/main.c])
 
 # Store the auxiliary build tools (e.g., install-sh, config.sub, config.guess)
 # in this dir (build-aux)
@@ -104,7 +104,7 @@ if test -n "$PAPIPATH"; then
 fi
 
 # Tells automake to create a Makefile
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile])
 
 # Generate the output
 AC_OUTPUT

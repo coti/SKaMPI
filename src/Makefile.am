@@ -17,28 +17,23 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
 
-subdirs = src 
-
-ACLOCAL_AMFLAGS=-I m4 
-AM_YFLAGS = -d
-AM_CFLAGS = -I $(srcdir)/src -I src
 
 bin_PROGRAMS = skampi
-BUILT_SOURCES = lex.yy.c src/parser.c src/parser.h m.c
-CLEANFILES = lex.yy.c src/parser.c src/parser.h m.c
+BUILT_SOURCES = lex.yy.c parser.c parser.h m.c
+CLEANFILES = lex.yy.c parser.c parser.h m.c
 
-MEASUREMENTS = src/measurements/helpers.c
+MEASUREMENTS = measurements/helpers.c
 
 MPI_MEASUREMENTS = \
-		src/measurements/bug.c       src/measurements/coll.c     src/measurements/datatypes.c \
-		src/measurements/delayed.c   src/measurements/demo.c                              \
-		src/measurements/io.c        src/measurements/localio.c  src/measurements/mmisc.c     \
-		src/measurements/node2node.c src/measurements/onesided.c src/measurements/pt2pt.c
+		measurements/bug.c       measurements/coll.c     measurements/datatypes.c \
+		measurements/delayed.c   measurements/demo.c                              \
+		measurements/io.c        measurements/localio.c  measurements/mmisc.c     \
+		measurements/node2node.c measurements/onesided.c measurements/pt2pt.c
 
 OPENSHMEM_MEASUREMENTS = \
-		src/measurements/openshmem.c        src/measurements/openshmem_atomic.c   \
-		src/measurements/openshmem_ctx.c    src/measurements/openshmem_p2p.c      \
-		src/measurements/openshmem_coll.c   src/measurements/openshmem_locks.c 
+		measurements/openshmem.c        measurements/openshmem_atomic.c   \
+		measurements/openshmem_ctx.c    measurements/openshmem_p2p.c      \
+		measurements/openshmem_coll.c   measurements/openshmem_locks.c 
 
 if ENABLE_MPI
 MEASUREMENTS += $(MPI_MEASUREMENTS)
@@ -49,9 +44,9 @@ MEASUREMENTS += $(OPENSHMEM_MEASUREMENTS)
 endif
 
 skampi_SOURCES = \
-	src/accounting.c src/autorefine.c src/compile.c src/debug.c src/exec.c src/main.c src/measurement.c src/mem.c src/misc.c src/output.c src/print.c src/symboltable.c src/synchronize.c \
+	accounting.c autorefine.c compile.c debug.c exec.c main.c measurement.c mem.c misc.c output.c print.c symboltable.c synchronize.c \
 	m.c lex.yy.c \
-	src/parser.y src/lexer.lex \
+	parser.y lexer.lex \
 	$(MEASUREMENTS)
 
 skampi_LDADD = -lm @LEXLIB@ 
@@ -90,8 +85,8 @@ EXCLUDE_M = --excl="$(OPENSHMEM_MEASUREMENTS) $(MPI_MEASUREMENTS)"
 endif
 endif
 
-$(top_builddir)/m.c: $(MEASUREMENTS) $(srcdir)/src/extract.pl
-	$(srcdir)/src/extract.pl --mpicc="$(THECC)" --cflags="$(CFLAGS) -E" --dir=$(srcdir)/src/measurements $(EXCLUDE_M) > m.c
+$(top_builddir)/m.c: $(MEASUREMENTS) $(srcdir)/extract.pl
+	$(srcdir)/extract.pl --mpicc="$(THECC)" --cflags="$(CFLAGS) -E" --dir=$(srcdir)/measurements $(EXCLUDE_M) > m.c
 
-lex.yy.c: $(srcdir)/src/lexer.lex
+lex.yy.c: $(srcdir)/lexer.lex
 	$(LEX) $(LFLAGS) $(AM_LFLAGS) -o $@ $<

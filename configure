@@ -581,7 +581,7 @@ PACKAGE_STRING='skampi 6.0'
 PACKAGE_BUGREPORT=''
 PACKAGE_URL=''
 
-ac_unique_file="main.c"
+ac_unique_file="src/main.c"
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
@@ -4268,7 +4268,7 @@ $as_echo_n "checking user-supplied PAPI installation... " >&6; }
 fi
 
 # Tells automake to create a Makefile
-ac_config_files="$ac_config_files Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile"
 
 
 # Generate the output
@@ -5039,6 +5039,7 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
