@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 static int skampi_maj_version = 6 ;
 static int skampi_min_version = 0 ;
-static int skampi_sub_release = 1 ;
+static int skampi_sub_release = 0 ;
 
-static char svn_revision[]="355";
+// static char svn_revision[]="355";
+static char git_sha1[]="5fb775a0443f7721ebef4af50cb197d3c03b91cc"; 

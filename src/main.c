@@ -70,7 +70,7 @@ long* psync = NULL;
 void print_version_info(void)
 {
   printf(" This is SKaMPI, version %1d.%1d.%1d, revision %s.\n",
-         skampi_maj_version, skampi_min_version, skampi_sub_release, svn_revision);
+         skampi_maj_version, skampi_min_version, skampi_sub_release, git_sha1);
 }
 
 void print_help_info(void)
@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
     if( get_my_global_rank() == get_output_rank() ) {
       time(&t1);
       print_output("# SKaMPI Version %d.%d.%d rev. %s\n\n", 
-		   skampi_maj_version, skampi_min_version, skampi_sub_release, svn_revision);
+		   skampi_maj_version, skampi_min_version, skampi_sub_release, git_sha1);
       print_output("# Started at %s\n\n", ctime(&t1));
     }
 
