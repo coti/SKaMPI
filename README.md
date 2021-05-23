@@ -26,11 +26,7 @@ Postscript and Pdf formats.
 
 
 Main configuration flags:
-`--disable-mpi`      : by default, MPI is enabled. This will disable
-                     the compilation of the MPI support, measurements
-		     and infrastructure. OpenSHMEM must be enabled.
-`--enable-openshmem` : enable OpenSHMEM. This will compile the OpenSHMEM
-                     measurement functions and, if MPI is disabled,
-		     the OpenSHMEM infrastructure.
-`--prefix`           : installation path.
+* `--disable-mpi` : by default, MPI is enabled. This will disable the compilation of the MPI support, measurements and infrastructure. OpenSHMEM must be enabled.
+* `--enable-openshmem` : enable OpenSHMEM. This will compile the OpenSHMEM  measurement functions and, if MPI is disabled, the OpenSHMEM infrastructure.
+* `--prefix` : installation path.
 
