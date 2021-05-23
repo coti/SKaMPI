@@ -1,0 +1,10 @@
+2021-05-22 Camille Coti <camille.coti [aatt] lipn.univ-paris13 [ddoott] fr>
+
+	* added measurement functions for OpenSHMEM
+
+	* added a configuration and compilation system using the Autotools
+
+	* added OpenSHMEM support in the infrastructure, making it
+	possible to use using OpenSHMEM environments that do not also
+	support MPI.
+
