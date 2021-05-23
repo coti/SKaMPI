@@ -5,6 +5,9 @@ Lehrstuhl Informatik fuer Naturwissenschaftler und Ingenieure
 Fakultaet fuer Informatik
 University of Karlsruhe
 
+2021 Camille Coti, Laboratoire d'Informatique de Paris Nord
+Universite Sorbonne Paris Nord.
+
 This program is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
 published by the Free Software Foundation

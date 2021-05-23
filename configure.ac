@@ -1,6 +1,7 @@
 #
 #
-# Copyright (c) 2021 LIPN - Universite Sorbonne Paris Nord
+# Copyright (c) 2021 Camille Coti
+# Laboratoire d'informatique de Paris Nord, Universite Sorbonne Paris Nord
 #                    All rights reserved.
 #
 # This file is part of SKaMPI.
