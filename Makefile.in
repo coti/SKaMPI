@@ -14,6 +14,25 @@
 
 @SET_MAKE@
 
+# SKaMPI   MPI-Benchmark
+
+# Copyright 2021 Camille Coti,
+# Laboratoire d'Informatique de Paris Nord
+# Universite Sorbonne Paris Nord.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of version 2 of the GNU General Public License as
+# published by the Free Software Foundation
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -106,22 +125,20 @@ PROGRAMS = $(bin_PROGRAMS)
 am__skampi_SOURCES_DIST = accounting.c autorefine.c compile.c debug.c \
 	exec.c main.c measurement.c mem.c misc.c output.c print.c \
 	symboltable.c synchronize.c m.c lex.yy.c parser.y lexer.lex \
-	measurements/bug.c measurements/coll.c \
+	measurements/helpers.c measurements/bug.c measurements/coll.c \
 	measurements/datatypes.c measurements/delayed.c \
-	measurements/demo.c measurements/helpers.c measurements/io.c \
-	measurements/localio.c measurements/mmisc.c \
-	measurements/node2node.c measurements/onesided.c \
-	measurements/pt2pt.c measurements/openshmem.c \
-	measurements/openshmem_atomic.c measurements/openshmem_ctx.c \
-	measurements/openshmem_p2p.c measurements/openshmem_coll.c \
-	measurements/openshmem_locks.c
+	measurements/demo.c measurements/io.c measurements/localio.c \
+	measurements/mmisc.c measurements/node2node.c \
+	measurements/onesided.c measurements/pt2pt.c \
+	measurements/openshmem.c measurements/openshmem_atomic.c \
+	measurements/openshmem_ctx.c measurements/openshmem_p2p.c \
+	measurements/openshmem_coll.c measurements/openshmem_locks.c
 am__dirstamp = $(am__leading_dot)dirstamp
 am__objects_1 = measurements/bug.$(OBJEXT) measurements/coll.$(OBJEXT) \
 	measurements/datatypes.$(OBJEXT) \
 	measurements/delayed.$(OBJEXT) measurements/demo.$(OBJEXT) \
-	measurements/helpers.$(OBJEXT) measurements/io.$(OBJEXT) \
-	measurements/localio.$(OBJEXT) measurements/mmisc.$(OBJEXT) \
-	measurements/node2node.$(OBJEXT) \
+	measurements/io.$(OBJEXT) measurements/localio.$(OBJEXT) \
+	measurements/mmisc.$(OBJEXT) measurements/node2node.$(OBJEXT) \
 	measurements/onesided.$(OBJEXT) measurements/pt2pt.$(OBJEXT)
 @ENABLE_MPI_TRUE@am__objects_2 = $(am__objects_1)
 am__objects_3 = measurements/openshmem.$(OBJEXT) \
@@ -131,7 +148,8 @@ am__objects_3 = measurements/openshmem.$(OBJEXT) \
 	measurements/openshmem_coll.$(OBJEXT) \
 	measurements/openshmem_locks.$(OBJEXT)
 @ENABLE_OPENSHMEM_TRUE@am__objects_4 = $(am__objects_3)
-am__objects_5 = $(am__objects_2) $(am__objects_4)
+am__objects_5 = measurements/helpers.$(OBJEXT) $(am__objects_2) \
+	$(am__objects_4)
 am_skampi_OBJECTS = accounting.$(OBJEXT) autorefine.$(OBJEXT) \
 	compile.$(OBJEXT) debug.$(OBJEXT) exec.$(OBJEXT) \
 	main.$(OBJEXT) measurement.$(OBJEXT) mem.$(OBJEXT) \
@@ -315,15 +333,15 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-ACLOCAL_AMFLAGS = -I config 
+ACLOCAL_AMFLAGS = -I m4 
 AM_YFLAGS = -d
 BUILT_SOURCES = lex.yy.c parser.c parser.h m.c
 CLEANFILES = lex.yy.c parser.c parser.h m.c
-MEASUREMENTS = $(am__append_1) $(am__append_2)
+MEASUREMENTS = measurements/helpers.c $(am__append_1) $(am__append_2)
 MPI_MEASUREMENTS = \
-		measurements/bug.c measurements/coll.c measurements/datatypes.c    \
-		measurements/delayed.c measurements/demo.c measurements/helpers.c  \
-		measurements/io.c measurements/localio.c measurements/mmisc.c      \
+		measurements/bug.c       measurements/coll.c     measurements/datatypes.c \
+		measurements/delayed.c   measurements/demo.c                              \
+		measurements/io.c        measurements/localio.c  measurements/mmisc.c     \
 		measurements/node2node.c measurements/onesided.c measurements/pt2pt.c
 
 OPENSHMEM_MEASUREMENTS = \
@@ -437,6 +455,8 @@ measurements/$(am__dirstamp):
 measurements/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) measurements/$(DEPDIR)
 	@: > measurements/$(DEPDIR)/$(am__dirstamp)
+measurements/helpers.$(OBJEXT): measurements/$(am__dirstamp) \
+	measurements/$(DEPDIR)/$(am__dirstamp)
 measurements/bug.$(OBJEXT): measurements/$(am__dirstamp) \
 	measurements/$(DEPDIR)/$(am__dirstamp)
 measurements/coll.$(OBJEXT): measurements/$(am__dirstamp) \
@@ -446,8 +466,6 @@ measurements/datatypes.$(OBJEXT): measurements/$(am__dirstamp) \
 measurements/delayed.$(OBJEXT): measurements/$(am__dirstamp) \
 	measurements/$(DEPDIR)/$(am__dirstamp)
 measurements/demo.$(OBJEXT): measurements/$(am__dirstamp) \
-	measurements/$(DEPDIR)/$(am__dirstamp)
-measurements/helpers.$(OBJEXT): measurements/$(am__dirstamp) \
 	measurements/$(DEPDIR)/$(am__dirstamp)
 measurements/io.$(OBJEXT): measurements/$(am__dirstamp) \
 	measurements/$(DEPDIR)/$(am__dirstamp)
