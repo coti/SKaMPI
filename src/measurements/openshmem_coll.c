@@ -67,9 +67,9 @@ void ezilanif_shmem_reduce( int count ){
 }
 
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_reduce_consecutive( int count, int iterations, void (*routine)( team, short, const short*, size_t) ){
+double erusaem_shmem_reduce_consecutive( int iterations, int count, void (*routine)( team, short, const short*, size_t) ){
 #else
-double erusaem_shmem_reduce_consecutive( int count, int iterations, void (*routine)( short*, const short*, int, int, int, int, short*, long* ) ){
+double erusaem_shmem_reduce_consecutive( int iterations, int count, void (*routine)( short*, const short*, int, int, int, int, short*, long* ) ){
 #endif
     int i;
     double start_time = 1.0, end_time = 0.0;
@@ -88,9 +88,9 @@ double erusaem_shmem_reduce_consecutive( int count, int iterations, void (*routi
 }
 
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_reduce_barrier( int count, int iterations, void (*routine)( team, short, const short*, size_t) ){
+double erusaem_shmem_reduce_barrier( int iterations, int count, void (*routine)( team, short, const short*, size_t) ){
 #else
-double erusaem_shmem_reduce_barrier( int count, int iterations, void (*routine)( short*, const short*, int, int, int, int, short*, long* ) ){
+double erusaem_shmem_reduce_barrier( int iterations, int count, void (*routine)( short*, const short*, int, int, int, int, short*, long* ) ){
 #endif
     int i;
     double start_time = 1.0, end_time = 0.0, btime, ttime;
@@ -166,9 +166,9 @@ void ezilanif_shmem_collect( int count ){
 }
  
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_collect_consecutive( int count, int iterations, void (*routine)( team, void*, const void*, size_t) ){
+double erusaem_shmem_collect_consecutive( int iterations, int count, void (*routine)( team, void*, const void*, size_t) ){
 #else
-double erusaem_shmem_collect_consecutive( int count, int iterations, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
+double erusaem_shmem_collect_consecutive( int iterations, int count, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
 #endif
     int i;
     double start_time = 1.0, end_time = 0.0;
@@ -187,9 +187,9 @@ double erusaem_shmem_collect_consecutive( int count, int iterations, void (*rout
 }
     
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)( team, void*, const void*, size_t) ){
+double erusaem_shmem_collect_barrier( int iterations, int count, void (*routine)( team, void*, const void*, size_t) ){
 #else
-double erusaem_shmem_collect_barrier( int count, int iterations, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
+double erusaem_shmem_collect_barrier( int iterations, int count, void (*routine)( void*, const void*, size_t, int, int, int, long *)){
 #endif
     int i;
     double start_time = 1.0, end_time = 0.0, btime, ttime = 0.0;
@@ -266,10 +266,10 @@ void ezilanif_shmem_alltoall( int count ){
 }
  
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_alltoalls_consecutive( int count, int iterations,
+double erusaem_shmem_alltoalls_consecutive( int iterations, int count, 
                                             void (*routine)( team, void*, const void*, ptrdiff_t, ptrdiff_t, size_t) ){
 #else
-double erusaem_shmem_alltoalls_consecutive( int count, int iterations,
+double erusaem_shmem_alltoalls_consecutive( int iterations, int count, 
                                             void (*routine)( void*, const void*, ptrdiff_t, ptrdiff_t, size_t, int, int, int, long *)){
 #endif
 
@@ -292,9 +292,9 @@ double erusaem_shmem_alltoalls_consecutive( int count, int iterations,
 }
  
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
-double erusaem_shmem_alltoalls_barrier( int count, int iterations, void (*routine)( team, void*, const void*, ptrdiff_t, ptrdiff_t, size_t) ){
+double erusaem_shmem_alltoalls_barrier( int iterations, int count, void (*routine)( team, void*, const void*, ptrdiff_t, ptrdiff_t, size_t) ){
 #else
-double erusaem_shmem_alltoalls_barrier( int count, int iterations, void (*routine)( void*, const void*, ptrdiff_t, ptrdiff_t, size_t, int, int, int, long *)){
+double erusaem_shmem_alltoalls_barrier( int iterations, int count, void (*routine)( void*, const void*, ptrdiff_t, ptrdiff_t, size_t, int, int, int, long *)){
 #endif
     int i;
     double start_time = 1.0, end_time = 0.0, btime, ttime = 0.0;
@@ -368,21 +368,19 @@ double erusaem_shmem_alltoalls_synchro( int count, void (*routine)( void*, const
 /*                       Collective routines                                 */
 /*---------------------------------------------------------------------------*/
 
-void init_Shmem_Bcast_All( int count, int root, int iterations ){
+ void init_Shmem_Bcast_All( int iterations, int count, int root ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
   init_synchronization();
 }
   
-void finalize_Shmem_Bcast_All( int count, int root, int iterations ){
+ void finalize_Shmem_Bcast_All( int iterations, int count, int root ){
   shmem_free( source );
   shmem_free( target );
 }
 
-/* TODO not necesarily on SHMEM_TEAM_WORLD */
-
-double measure_Shmem_Bcast_All( int count, int root, int iterations ){
+ double measure_Shmem_Bcast_All( int iterations, int count, int root ){
     double start_time, end_time, btime, ttime = 0.0;
     int i;
 
@@ -433,7 +431,7 @@ void init_Shmem_Bcast_All_Synchro( int count, int root ){
   init_synchronization();
 }
   
-void finalize_Shmem_Bcast_All_Synchro( int count , int root ){
+void finalize_Shmem_Bcast_All_Synchro( int count, int root ){
   shmem_free( source );
   shmem_free( target );
 }
@@ -465,21 +463,21 @@ double measure_Shmem_Bcast_All_Synchro( int count, int root ){
    of pipeling, depending on the order used to cycle over the tasks. 
 */
 
-void init_Shmem_Bcast_All_Rounds( int count, int iterations ){
+ void init_Shmem_Bcast_All_Rounds( int iterations, int count ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
   init_synchronization();
 }
   
-void finalize_Shmem_Bcast_All_Rounds( int count, int iterations ){
+void finalize_Shmem_Bcast_All_Rounds( int iterations, int count ){
   shmem_free( source );
   shmem_free( target );
 }
 
 /* TODO not necesarily on SHMEM_TEAM_WORLD */
 
-double measure_Shmem_Bcast_All_Rounds( int count, int iterations ){
+double measure_Shmem_Bcast_All_Rounds( int iterations, int count ){
     double start_time, end_time;
     int root, i;
     
@@ -503,7 +501,7 @@ double measure_Shmem_Bcast_All_Rounds( int count, int iterations ){
    DOI 10.1109/HPDC.1999.805279
 */
 
-void init_Shmem_Bcast_All_SK( int count, int root, int iterations ){
+void init_Shmem_Bcast_All_SK( int iterations, int count, int root ){
   size = shmem_n_pes();
   source = (char*) shmem_malloc( count );
   target = (char*) shmem_malloc( count );
@@ -511,8 +509,8 @@ void init_Shmem_Bcast_All_SK( int count, int root, int iterations ){
   *ack = 0;
   init_synchronization();
 }
-  
-void finalize_Shmem_Bcast_All_SK( int count, int root, int iterations ){
+
+void finalize_Shmem_Bcast_All_SK( int iterations, int count, int root ){
   shmem_free( source );
   shmem_free( target );
   shmem_free( ack );
@@ -520,7 +518,7 @@ void finalize_Shmem_Bcast_All_SK( int count, int root, int iterations ){
 
 /* TODO not necesarily on SHMEM_TEAM_WORLD */
 
-double measure_Shmem_Bcast_All_SK( int count, int root, int iterations ){
+double measure_Shmem_Bcast_All_SK( int iterations, int count, int root ){
   double start_time, t1, rt1, t2, rt2, mytime;
   int rank = shmem_my_pe();
   int i, dst, task;
@@ -631,33 +629,33 @@ double measure_Shmem_Bcast_All_SK( int count, int root, int iterations ){
 /* TODO other operations */
 /* and, or, xor, max, min, sum, prod */
 
-void init_Shmem_Reduce_And_Consecutive( int count, int iterations ){
+ void init_Shmem_Reduce_And_Consecutive( int iterations, int count  ){
     tini_shmem_reduce( count );
  }
   
-void finalize_Shmem_Reduce_And_Consecutive( int count, int iterations ){
+void finalize_Shmem_Reduce_And_Consecutive( int iterations, int count ){
     ezilanif_shmem_reduce( count );
 }
 
 /* TODO not necesarily on SHMEM_TEAM_WORLD */
 /* TODO other operations */
 
-double measure_Shmem_Reduce_And_Consecutive( int count, int iterations ){
-    return erusaem_shmem_reduce_consecutive( count, iterations, &shmem_short_and_to_all );
+double measure_Shmem_Reduce_And_Consecutive( int iterations, int count ){
+    return erusaem_shmem_reduce_consecutive( iterations, count, &shmem_short_and_to_all );
 }
 
 /*---------------------------------------------------------------------------*/
 
-void init_Shmem_Reduce_And_Barrier( int count, int iterations ){
+void init_Shmem_Reduce_And_Barrier( int iterations, int count ){
     tini_shmem_reduce( count );
  }
   
-void finalize_Shmem_Reduce_And_Barrier( int count, int iterations ){
+void finalize_Shmem_Reduce_And_Barrier( int iterations, int count ){
     ezilanif_shmem_reduce( count );
 }
 
-double measure_Shmem_Reduce_And_Barrier( int count, int iterations ){
-    return erusaem_shmem_reduce_barrier( count, iterations, &shmem_short_and_to_all );
+double measure_Shmem_Reduce_And_Barrier( int iterations, int count ){
+    return erusaem_shmem_reduce_barrier( iterations, count, &shmem_short_and_to_all );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -678,69 +676,69 @@ double measure_Shmem_Reduce_And_Synchro( int count ){
 /*                              Collect                                      */
 /*---------------------------------------------------------------------------*/
 
-void init_Shmem_Collect_Consecutive( int count, int iterations ){
+void init_Shmem_Collect_Consecutive( int iterations, int count ){
     tini_shmem_collect( count );
  }
   
-void finalize_Shmem_Collect_Consecutive( int count, int iterations ){
+void finalize_Shmem_Collect_Consecutive( int iterations, int count ){
     ezilanif_shmem_collect( count );
 }
 
-double measure_Shmem_Collect_Consecutive( int count, int iterations ){
+double measure_Shmem_Collect_Consecutive( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_collect32 );
+    return erusaem_shmem_collect_consecutive( iterations, count, &shmem_collect32 );
 #else
-    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_collectmem );
+    return erusaem_shmem_collect_consecutive( iterations,count,  &shmem_collectmem );
 #endif
 }
  
-void init_Shmem_Fcollect_Consecutive( int count, int iterations ){
+void init_Shmem_Fcollect_Consecutive( int iterations, int count ){
     tini_shmem_collect( count );
  }
   
-void finalize_Shmem_Fcollect_Consecutive( int count, int iterations ){
+void finalize_Shmem_Fcollect_Consecutive( int iterations, int count ){
     ezilanif_shmem_collect( count );
 }
  
-double measure_Shmem_Fcollect_Consecutive( int count, int iterations ){
+double measure_Shmem_Fcollect_Consecutive( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_fcollect32 );
+    return erusaem_shmem_collect_consecutive( iterations, count, &shmem_fcollect32 );
 #else
-    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_fcollectmem );
+    return erusaem_shmem_collect_consecutive( iterations, count, &shmem_fcollectmem );
 #endif
 }
  
 /*---------------------------------------------------------------------------*/
 
-void init_Shmem_Collect_Barrier( int count, int iterations ){
+void init_Shmem_Collect_Barrier( int iterations, int count ){
     tini_shmem_collect( count );
  }
   
-void finalize_Shmem_Collect_Barrier( int count, int iterations ){
+void finalize_Shmem_Collect_Barrier( int iterations, int count ){
     ezilanif_shmem_collect( count );
 }
 
-double measure_Shmem_Collect_Barrier( int count, int iterations ){
+double measure_Shmem_Collect_Barrier( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-    return erusaem_shmem_collect_barrier( count, iterations, &shmem_collect32 );
+    return erusaem_shmem_collect_barrier( iterations, count, &shmem_collect32 );
 #else
-    return erusaem_shmem_collect_barrier( count, iterations, &shmem_collectmem );
+    return erusaem_shmem_collect_barrier( iterations, count, &shmem_collectmem );
 #endif
 }
 
-void init_Shmem_Fcollect_Barrier( int count, int iterations ){
+void init_Shmem_Fcollect_Barrier( int iterations, int count ){
     tini_shmem_collect( count );
  }
   
-void finalize_Shmem_Fcollect_Barrier( int count, int iterations ){
+void finalize_Shmem_Fcollect_Barrier( int iterations, int count ){
     ezilanif_shmem_collect( count );
 }
 
-double measure_Shmem_Fcollect_Barrier( int count, int iterations ){
+double measure_Shmem_Fcollect_Barrier( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5
-    return erusaem_shmem_collect_barrier( count, iterations, &shmem_fcollect32 );
+    return erusaem_shmem_collect_barrier( iterations, count, &shmem_fcollect32 );
 #else
-    return erusaem_shmem_collect_barrier( count, iterations, &shmem_fcollectmem );
+    return erusaem_shmem_collect_barrier( iterations, count, &shmem_fcollectmem );
 #endif
 }
 
@@ -782,69 +780,69 @@ double measure_Shmem_Fcollect_Synchro( int count ){
 /*                             All-to-all                                    */
 /*---------------------------------------------------------------------------*/
     
-void init_Shmem_Alltoall_Consecutive( int count, int iterations ){
+void init_Shmem_Alltoall_Consecutive( int iterations, int count ){
     tini_shmem_alltoall( count );
  }
   
-void finalize_Shmem_Alltoall_Consecutive( int count, int iterations ){
+void finalize_Shmem_Alltoall_Consecutive( int iterations, int count ){
     ezilanif_shmem_alltoall( count );
 }
 
-double measure_Shmem_Alltoall_Consecutive( int count, int iterations ){
+double measure_Shmem_Alltoall_Consecutive( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 /* Same API, same measurement */
-    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_alltoall32 );
+    return erusaem_shmem_collect_consecutive( iterations, count, &shmem_alltoall32 );
 #else
-    return erusaem_shmem_collect_consecutive( count, iterations, &shmem_alltoallmem );
+    return erusaem_shmem_collect_consecutive( iterations, count, &shmem_alltoallmem );
 #endif
 }
 
-void init_Shmem_Alltoalls_Consecutive( int count, int iterations ){
+void init_Shmem_Alltoalls_Consecutive( int iterations, int count ){
     tini_shmem_alltoall( count );
  }
   
-void finalize_Shmem_Alltoalls_Consecutive( int count, int iterations ){
+void finalize_Shmem_Alltoalls_Consecutive( int iterations, int count ){
     ezilanif_shmem_alltoall( count );
 }
 
-double measure_Shmem_Alltoalls_Consecutive( int count, int iterations ){
+double measure_Shmem_Alltoalls_Consecutive( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 
-    return erusaem_shmem_alltoalls_consecutive( count, iterations, &shmem_alltoalls32 );
+    return erusaem_shmem_alltoalls_consecutive( iterations, count, &shmem_alltoalls32 );
 #else
-    return erusaem_shmem_alltoalls_consecutive( count, iterations, &shmem_alltoallsmem );
+    return erusaem_shmem_alltoalls_consecutive( iterations, count, &shmem_alltoallsmem );
 #endif
 }
 
 /*---------------------------------------------------------------------------*/
 
-void init_Shmem_Alltoall_Barrier( int count, int iterations ){
+void init_Shmem_Alltoall_Barrier( int iterations, int count ){
     tini_shmem_alltoall( count );
  }
   
-void finalize_Shmem_Alltoall_Barrier( int count, int iterations ){
+void finalize_Shmem_Alltoall_Barrier( int iterations, int count ){
     ezilanif_shmem_alltoall( count );
 }
 
-double measure_Shmem_Alltoall_Barrier( int count, int iterations ){
+double measure_Shmem_Alltoall_Barrier( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 /* Same API, same measurement */
-    return erusaem_shmem_collect_barrier( count, iterations, &shmem_alltoall32 );
+    return erusaem_shmem_collect_barrier( iterations, count, &shmem_alltoall32 );
 #else
-    return erusaem_shmem_collect_barrier( count, iterations, &shmem_alltoallmem );
+    return erusaem_shmem_collect_barrier( iterations, count, &shmem_alltoallmem );
 #endif
 }
 
-void init_Shmem_Alltoalls_Barrier( int count, int iterations ){
+void init_Shmem_Alltoalls_Barrier( int iterations, int count ){
     tini_shmem_alltoall( count );
  }
   
-void finalize_Shmem_Alltoalls_Barrier( int count, int iterations ){
+void finalize_Shmem_Alltoalls_Barrier( int iterations, int count ){
     ezilanif_shmem_alltoall( count );
 }
 
-double measure_Shmem_Alltoalls_Barrier( int count, int iterations ){
+double measure_Shmem_Alltoalls_Barrier( int iterations, int count ){
 #if _SHMEM_MAJOR_VERSION <= 1 && _SHMEM_MINOR_VERSION < 5 
-    return erusaem_shmem_alltoalls_barrier( count, iterations, &shmem_alltoalls32 );
+    return erusaem_shmem_alltoalls_barrier( iterations, count, &shmem_alltoalls32 );
 #else
-    return erusaem_shmem_alltoalls_barrier( count, iterations, &shmem_alltoallsmem );
+    return erusaem_shmem_alltoalls_barrier( iterations, count, &shmem_alltoallsmem );
 #endif
 }
 

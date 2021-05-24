@@ -1,26 +1,29 @@
 ## Broadcast
 
+iterations = 10
+root = 0
+
 begin measurement "Shmem_Bcast_All"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Bcast_All(count, 0, 10)
+      measure comm_pt2pt : Shmem_Bcast_All(iterations, count, root)
   od
 end measurement
 
 begin measurement "Shmem_Bcast_All_Synchro"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Bcast_All_Synchro(count, 0)
+      measure comm_pt2pt : Shmem_Bcast_All_Synchro(count, root)
   od
 end measurement
 
 begin measurement "Shmem_Bcast_All_Rounds"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Bcast_All_Rounds(count, 10)
+      measure comm_pt2pt : Shmem_Bcast_All_Rounds(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Bcast_All_SK"
   for count = 4 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Bcast_All_SK(count, 0, 15)
+      measure comm_pt2pt : Shmem_Bcast_All_SK(iterations, count, root)
   od
 end measurement
 
@@ -28,13 +31,13 @@ end measurement
 
 begin measurement "Shmem_Reduce_And_All-Consecutive"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Reduce_And_Consecutive(count, 10)
+      measure comm_pt2pt : Shmem_Reduce_And_Consecutive(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Reduce_And_All-Barrier"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Reduce_And_Barrier(count, 10)
+      measure comm_pt2pt : Shmem_Reduce_And_Barrier(iterations, count)
   od
 end measurement
 
@@ -49,25 +52,25 @@ end measurement
 
 begin measurement "Shmem_Collect_All-Consecutive"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Collect_Consecutive(count, 10)
+      measure comm_pt2pt : Shmem_Collect_Consecutive(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Fcollect_All-Consecutive"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Fcollect_Consecutive(count, 10)
+      measure comm_pt2pt : Shmem_Fcollect_Consecutive(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Collect_All-Barrier"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Collect_Barrier(count, 10)
+      measure comm_pt2pt : Shmem_Collect_Barrier(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Fcollect_All-Barrier"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Fcollect_Barrier(count, 10)
+      measure comm_pt2pt : Shmem_Fcollect_Barrier(iterations, count)
   od
 end measurement
 
@@ -87,25 +90,25 @@ end measurement
 
 begin measurement "Shmem_Alltoall_All-Consecutive"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Alltoall_Consecutive(count, 10)
+      measure comm_pt2pt : Shmem_Alltoall_Consecutive(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Alltoalls_All-Consecutive"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Alltoalls_Consecutive(count, 10)
+      measure comm_pt2pt : Shmem_Alltoalls_Consecutive(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Alltoall_All-Barrier"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Alltoall_Barrier(count, 10)
+      measure comm_pt2pt : Shmem_Alltoall_Barrier(iterations, count)
   od
 end measurement
 
 begin measurement "Shmem_Alltoalls_All-Barrier"
   for count = 1 to MAXSIZE step *sqrt(2) do
-      measure comm_pt2pt : Shmem_Alltoalls_Barrier(count, 10)
+      measure comm_pt2pt : Shmem_Alltoalls_Barrier(iterations, count)
   od
 end measurement
 
@@ -128,7 +131,7 @@ begin measurement "Shmem_Barrier_all"
 end measurement
 
 begin measurement "Shmem_Barrier_all-Consecutive"
-  measure comm_pt2pt : Shmem_Barrier_Consecutive( 10 )
+  measure comm_pt2pt : Shmem_Barrier_Consecutive( iterations )
 end measurement
 
 begin measurement "Shmem_Barrier_Half"
@@ -136,7 +139,7 @@ begin measurement "Shmem_Barrier_Half"
 end measurement
 
 begin measurement "Shmem_Barrier_Half-Consecutive"
-  measure comm_pt2pt : Shmem_Barrier_Half_Consecutive( 10 )
+  measure comm_pt2pt : Shmem_Barrier_Half_Consecutive( iterations )
 end measurement
 
 ## Sync
@@ -146,7 +149,7 @@ begin measurement "Shmem_Sync_all"
 end measurement
 
 begin measurement "Shmem_Sync_all-Consecutive"
-  measure comm_pt2pt : Shmem_Sync_Consecutive( 10 )
+  measure comm_pt2pt : Shmem_Sync_Consecutive( iterations )
 end measurement
 
 begin measurement "Shmem_Sync_Half"
@@ -154,5 +157,5 @@ begin measurement "Shmem_Sync_Half"
 end measurement
 
 begin measurement "Shmem_Sync_Half-Consecutive"
-  measure comm_pt2pt : Shmem_Sync_Half_Consecutive( 10 )
+  measure comm_pt2pt : Shmem_Sync_Half_Consecutive( iterations )
 end measurement
