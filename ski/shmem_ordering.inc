@@ -4,7 +4,7 @@ begin measurement "Quiet"
 end measurement
 
 begin measurement "Quiet Put"
-    measure comm_pt2pt : Shmem_Quiet_Put( 256, 15 )
+    measure comm_pt2pt : Shmem_Quiet_Put( 15, 256 )
 end measurement
 
 begin measurement "Fence"
@@ -12,7 +12,7 @@ begin measurement "Fence"
 end measurement
 
 begin measurement "Fence Put"
-    measure comm_pt2pt : Shmem_Fence_Put( 256, 15 )
+    measure comm_pt2pt : Shmem_Fence_Put( 15, 256 )
 end measurement
 
 begin measurement "Wait_Until"

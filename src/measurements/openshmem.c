@@ -170,17 +170,17 @@ double measure_Shmem_Quiet( int iterations ){
    operation issued just before.
 */
 
-void init_Shmem_Quiet_Put( int count, int iterations ){
+void init_Shmem_Quiet_Put( int iterations, int nb ){
     init_synchronization();
-    target = (char*) shmalloc( count );
+    target = (char*) shmalloc( nb );
 }
 
-void finalize_Shmem_Quiet_Put( int count, int iterations ){
+void finalize_Shmem_Quiet_Put( int iterations, int nb ){
     shfree( target );
     target = NULL;
 }
 
-double measure_Shmem_Quiet_Put( int count, int iterations ){
+double measure_Shmem_Quiet_Put( int iterations, int nb ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
     char* sym;
     int i, rank, size;
@@ -190,7 +190,7 @@ double measure_Shmem_Quiet_Put( int count, int iterations ){
     start_time = start_synchronization();
     for( i = 0 ; i < iterations ; i++ ) {
 
-        shmem_char_put( target, get_send_buffer(), count, (rank+1)%size );
+        shmem_char_put( target, get_send_buffer(), nb, (rank+1)%size );
         
         t1 = wtime();
         shmem_quiet();
@@ -231,17 +231,17 @@ double measure_Shmem_Fence( int iterations ){
    when posted after a communication (such as a put)
 */
 
-void init_Shmem_Fence_Put( int count, int iterations ){
+void init_Shmem_Fence_Put( int iterations, int nb ){
     init_synchronization();
-    target = (char*) shmalloc( count );
+    target = (char*) shmalloc( nb );
 }
 
-void finalize_Shmem_Fence_Put( int count, int iterations ){
+void finalize_Shmem_Fence_Put( int iterations, int nb ){
     shfree( target );
     target = NULL;
 }
 
-double measure_Shmem_Fence_Put( int count, int iterations ){
+double measure_Shmem_Fence_Put( int iterations, int nb ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
     char* sym;
     int i, rank, size;
@@ -251,7 +251,7 @@ double measure_Shmem_Fence_Put( int count, int iterations ){
     start_time = start_synchronization();
     for( i = 0 ; i < iterations ; i++ ) {
 
-        shmem_char_put( target, get_send_buffer(), count, (rank+1)%size );
+        shmem_char_put( target, get_send_buffer(), nb, (rank+1)%size );
         
         t1 = wtime();
         shmem_fence();
