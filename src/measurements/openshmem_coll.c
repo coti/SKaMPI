@@ -584,9 +584,10 @@ double measure_Shmem_Bcast_All_SK( int iterations, int count, int root ){
           
           /* Mesurements */
           
-          t1 = wtime();
+          rt2 = 0;
           for( i = 0 ; i < iterations ; i++ ){
 
+              t1 = wtime();
               if( task == rank ) source[0] = 1;
               
 #if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
@@ -598,29 +599,219 @@ double measure_Shmem_Bcast_All_SK( int iterations, int count, int root ){
               shmem_quiet(); // or shmem_fence
               
               if( root == rank ){
-                  shmem_int_atomic_fetch_inc( ack, task );
+                  //   shmem_int_atomic_fetch_inc( ack, task );
                   shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
                   *ack = 0;
               } else {
                   if( task == rank ) {
-                      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
-                      *ack = 0;
+                      //         shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                      //        *ack = 0;
                       shmem_int_atomic_fetch_inc( ack, root );
                   }
               }
               
+              t2 = wtime();
+              rt2 += ( t2 - t1 );
           }
-          t2 = wtime();
           
-          if( rank == task || root == rank ){ /* the root will keep the last time taken */
-              rt2 = t2 - t1;
-              mytime = (rt2 - rt1)/iterations;
+          if( rank == task || root == rank ){
+              /* the root will keep the max time taken. 
+                 If a process is early in the progress of the collectivem it will 
+                 acknowledge quickly. We want the last process. */
+              // rt2 = t2 - t1;
+              mytime = imax2( mytime, (rt2 - rt1/2)/iterations );
           }
       }
   }
   t1 = stop_synchronization();
 
-  return mytime;
+  if( rank == root )
+      return mytime;
+  else
+      return -1;
+}
+
+
+/* Make sure there is no pipeline.
+ * We can prove that two consecutive broadcasts cannot be mixed (under some hypothesis
+ * on the order of broadcasts), and pipelining does not matter in what we are measuring.
+ * However, ongoing communications from previous or subsequent broadcasts might disturb 
+ * the performance of the broadcast we are measuring. Therefore, we are introducing
+ * a wait time in order to allow intervals between consecutive broadcasts.
+ */
+
+unsigned int iter_sleep;
+
+void init_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
+
+  double start_time, tbarrier, mytime;
+  int i;
+    
+  size = shmem_n_pes();
+  source = (char*) shmem_malloc( count );
+  target = (char*) shmem_malloc( count );
+  ack    = (int*)  shmem_malloc( sizeof( int ) );
+  *ack = 0;
+
+  /* Measure a rough approximation of the time it takes to perform a broadcast and a 
+     barrier. */
+
+  shmem_barrier_all();
+  start_time = wtime();
+  for( i = 0 ; i < iterations ; i++ ){
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+      shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+      shmem_broadcast32( target, source, count/4, root, 0, 0, size, psync );
+#endif
+      shmem_barrier_all();
+  }
+  tbarrier = ( wtime() - start_time ) / iterations;
+  tbarrier *= 2;
+
+  /* However, a call to usleep() is not a satisfying way of waiting. So we are 
+     going to call a loop that runs during approximately the same time.
+  */
+  mytime = 0.0;
+  i = 1e2;
+  while( mytime < tbarrier ){
+      i *= 2;
+      start_time = wtime();
+      srand( getpid() );
+      for( unsigned int k = 0 ; k < i ; k++ ){
+          int u = rand();
+      }
+      mytime = wtime() - start_time;
+  }
+  
+  init_synchronization();
+}
+
+void finalize_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
+  shmem_free( source );
+  shmem_free( target );
+  shmem_free( ack );
+}
+
+/* TODO not necesarily on SHMEM_TEAM_WORLD */
+
+double measure_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
+  double start_time, t1, rt1, t2, rt2, mytime;
+  int rank = shmem_my_pe();
+  int i, dst, task;
+
+  /* The algorithm is written with two-sided communications. We are using atomic puts instead. */
+  start_time = start_synchronization();
+  shmem_fence();
+
+  for( task = 0 ; task < size ; task++ ){
+      if( task != root ) {
+          
+          /* First step: one-to-one communications */
+          *ack = 0;
+          shmem_barrier_all();
+
+          start_time = wtime();
+          if( root == rank ){
+              for( i = 0 ; i < iterations ; i++ ){
+                  shmem_int_atomic_fetch_inc( ack, task );
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  *ack = 0;
+              }
+          } else {
+              if( task == rank ){
+                  for( i = 0 ; i < iterations ; i++ ){
+                      shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                      *ack = 0;
+                      shmem_int_atomic_fetch_inc( ack, root );
+                  }
+              }
+          }           
+          t1 = wtime();
+          rt1 = ( t1 - start_time );
+          
+          /* Second step: broadcasts, with ack. */
+          /* Assumptions:
+             - the acknowledgment does not arrive at the root before the root has
+             finished the broadcast 
+             - no task j on i's broadcast path delays the next broadcast 
+          */
+          
+          *ack = 0;
+          shmem_barrier_all();
+          
+         /* Initial broadcast / ack: assumption consistency check */
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+          shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+          shmem_broadcast32( target, source, count/4, root, 0, 0, size, psync );
+#endif
+          if( root == rank ){
+              shmem_int_atomic_fetch_inc( ack, task );
+              shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+          } else {
+              if( task == rank ) {
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  shmem_int_atomic_fetch_inc( ack, root );
+              }
+          }
+          
+          *ack = 0;
+          shmem_barrier_all();
+          
+          /* Mesurements */
+
+          rt2 = 0;
+          for( i = 0 ; i < iterations ; i++ ){
+
+              t1 = wtime();
+              if( task == rank ) source[0] = 1;
+              
+#if _SHMEM_MAJOR_VERSION >= 1 && _SHMEM_MINOR_VERSION >= 5
+              shmem_broadcastmem( SHMEM_TEAM_WORLD, target, source, count, root );
+#else
+              shmem_broadcast32( target, source, count/4, root, 0, 0, size, psync );
+#endif
+
+              shmem_quiet(); // or shmem_fence
+              
+              if( root == rank ){
+                  //   shmem_int_atomic_fetch_inc( ack, task );
+                  shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                  *ack = 0;
+              } else {
+                  if( task == rank ) {
+                      //         shmem_int_wait_until( ack, SHMEM_CMP_EQ, 1 );
+                      //        *ack = 0;
+                      shmem_int_atomic_fetch_inc( ack, root );
+                  }
+              }
+              
+              t2 = wtime();
+              rt2 += ( t2 - t1 );
+              if( root == rank ){
+                  /* Sleep to flush the ongoing communications */
+                  srand( getpid() );
+                  for( unsigned int k = 0 ; k < iter_sleep ; k++ ){
+                      int u = rand();
+                  }
+              }
+         }
+          
+          if( rank == task || root == rank ){
+              /* the root will keep the max time taken. 
+                 If a process is early in the progress of the collectivem it will 
+                 acknowledge quickly. We want the last process. */
+              mytime = imax2( mytime, (rt2 - rt1/2)/iterations );
+          }
+      }
+  }
+  t1 = stop_synchronization();
+
+  if( rank == root )
+      return mytime;
+  else
+      return -1;
 }
 
 /*---------------------------------------------------------------------------*/
