@@ -1184,19 +1184,16 @@ double measure_Shmem_Sync_Consecutive(int iterations ){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Sync_Half() {
-    // psynccm = (long*) shmem_malloc( SHMEM_BCAST_SYNC_SIZE );
   size = shmem_n_pes();
   init_synchronization();
 }
  
 void finalize_Shmem_Sync_Half() {
-    //    shmem_free( psynccm );
 }
  
 double measure_Shmem_Sync_Half(){
   double start_time, end_time;
   start_time = start_synchronization();
-  //  shmem_sync( 0, 1, size/2, psynccm );
   shmem_sync( 0, 1, size/2, psync );
   end_time = stop_synchronization();
   return end_time - start_time;

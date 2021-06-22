@@ -315,7 +315,7 @@ void init_synchronization(void)
 #ifdef SKAMPI_OPENSHMEM
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   static double gl_start, gl_start_res;
-  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof(long) );
+  //  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof(long) );
   
   if( get_my_global_rank() == 0 ){
       gl_start = start_batch;
@@ -490,7 +490,7 @@ static void measurement_loop(struct term *t)
   int* pwork_i;
   double* gl_local_results;
   double* gl_my_results;
-  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof( long ) );
+  //  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof( long ) );
   pwork = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( double ) ) ;
   pwork_i = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
 
@@ -887,7 +887,7 @@ int execute_measurement(struct statement *s)
   // TODO OSHMEM the interface is changing in OpenSHMEM 1.5
   int* pwork;
 
-  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof( long ) );
+  //  if( NULL == psync ) psync = (long*)shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof( long ) );
   pwork = shmem_malloc( imax2( 2, SHMEM_REDUCE_MIN_WRKDATA_SIZE ) * sizeof( int ) ) ;
 
   shmem_int_max_to_all( &global_meas_buffer_too_small, &meas_buffer_too_small, 1, 0,

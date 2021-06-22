@@ -280,7 +280,7 @@ int main(int argc, char* argv[])
   finalize_ranks();
   
 #ifdef SKAMPI_OPENSHMEM
-  shmem_free( psync );
+  // if( NULL != psync ) { shmem_free( psync ); psync = NULL; } /* ca chouine ici */
   shmem_finalize();
 #endif
 #ifdef SKAMPI_MPI
