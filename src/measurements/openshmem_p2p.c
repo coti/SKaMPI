@@ -515,7 +515,6 @@ void init_Shmem_Put_Nonblocking_Overlap( int count, int iterations ) {
     btime = (t2 - t1);
     btime /= iterations;
     //    shmem_fence();
-    printf( "%.2lf nsec\n ", btime);
 	
     /* We cannot use usleep here */
     mytime = 0.0;
@@ -529,7 +528,6 @@ void init_Shmem_Put_Nonblocking_Overlap( int count, int iterations ) {
 	}
 	mytime = wtime() - t1;
     }
-    printf( "%d iter\n", overlap_sleep );
 }
 
 void finalize_Shmem_Put_Nonblocking_Overlap( int count, int iterations ){
@@ -840,7 +838,6 @@ void init_Shmem_Get_Nonblocking_Overlap( int count, int iterations ) {
     btime = (t2 - t1);
     btime /= iterations;
     //    shmem_fence();
-    printf( "%.2lf nsec\n ", btime);
 	
     /* We cannot use usleep here */
     mytime = 0.0;
@@ -854,7 +851,6 @@ void init_Shmem_Get_Nonblocking_Overlap( int count, int iterations ) {
 	}
 	mytime = wtime() - t1;
     }
-    printf( "%d iter\n", overlap_sleep );
 }
 
 double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
