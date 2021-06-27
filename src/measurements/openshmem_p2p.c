@@ -729,12 +729,17 @@ double measure_Shmem_Get_Nonblocking_Post( int count, int iterations ){
 */
 
 void init_Shmem_Get_Nonblocking_Full( int count, int iterations ) {
+  sym = shmem_malloc( count );
+  shmem_fence();
   init_synchronization();
+}
+
+void finalize_Shmem_Get_Nonblocking_Full( int count, int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_Get_Nonblocking_Full( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
-    char* sym;
     int i, rank, size;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -746,8 +751,6 @@ double measure_Shmem_Get_Nonblocking_Full( int count, int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( count );
-    shmem_fence();
     start_time = start_synchronization();
     
     for (i=0; i<iterations; i++) {
@@ -759,7 +762,6 @@ double measure_Shmem_Get_Nonblocking_Full( int count, int iterations ){
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ttime/iterations;
 }
 
@@ -831,7 +833,7 @@ void init_Shmem_Get_Nonblocking_Overlap( int count, int iterations ) {
     
     t1 = wtime();
     for( i = 0 ; i < iterations ; i++ ) {
-	shmem_getmem_nbi( sym, get_send_buffer(), count, (rank + 1 ) % size );
+        shmem_getmem_nbi( get_recv_buffer(), sym, count,  (rank + 1 ) % size );
 	shmem_quiet();
     }
     t2 = wtime();
@@ -853,6 +855,9 @@ void init_Shmem_Get_Nonblocking_Overlap( int count, int iterations ) {
     }
 }
 
+void finalize_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
+  shmem_free( sym );
+}
 double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, btime = 0.0, ttime = 0.0;
     int i, rank, size;
@@ -890,7 +895,6 @@ double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
     ttime /= iterations;
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ttime / iterations;
 }
 
