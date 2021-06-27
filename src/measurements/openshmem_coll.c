@@ -683,6 +683,7 @@ void init_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
       }
       mytime = wtime() - start_time;
   }
+  iter_sleep = i;
   
   init_synchronization();
 }
