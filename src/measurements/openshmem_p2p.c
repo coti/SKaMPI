@@ -44,8 +44,9 @@ double measure_quiet( int iterations ){
 
 #pragma weak begin_skampi_extensions
 
-char* source;
-char* target;
+static char* source;
+static char* target;
+static char* sym;
 
 /*---------------------------------------------------------------------------*/
 /*                    Point-to-point routines                                */
@@ -61,12 +62,15 @@ char* target;
 */
 
 void init_Shmem_Put_Simple( int count, int iterations ) {
-  init_synchronization();
+    sym = shmem_malloc( count );
+    init_synchronization();
+}
+void finalize_Shmem_Put_Simple( int count, int iterations ) {
+    shmem_free( sym ); 
 }
 
 double measure_Shmem_Put_Simple( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0, qtime = 1.0;
-    char* sym;
     int i;
     
     if (iterations<0) {
@@ -76,8 +80,6 @@ double measure_Shmem_Put_Simple( int count, int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( count );
-    shmem_fence();
     start_time = start_synchronization();
 
     if (get_measurement_rank() == 0){
@@ -96,7 +98,6 @@ double measure_Shmem_Put_Simple( int count, int iterations ){
     }
 
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ( ttime/iterations ) - qtime;
 }
 
@@ -110,13 +111,16 @@ void init_Shmem_Pingpong_Put_Put( int count, int iterations ) {
 
   set_recv_buffer_usage(onesided_winsize);*/
 
+  sym = shmem_malloc( count );
+  shmem_fence();
   init_synchronization();
 }
-
+void finalize_Shmem_Pingpong_Put_Put( int count, int iterations ) {
+    shmem_free( sym );
+}
 
 double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
   double start_time = 1.0, end_time = 0.0, qtime = 0.0;
-  char* sym;
   int i;
 
   if (iterations<0) {
@@ -126,8 +130,6 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
     return 0.0;    /* avoid division by zero at the end */
   }
   
-  sym = shmem_malloc( count );
-  shmem_fence();
   start_time = start_synchronization();
   
   if (get_measurement_rank() <= 1){
@@ -148,8 +150,7 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
   }
 
   end_time = stop_synchronization();
-  shmem_free( sym );
-  if(get_measurement_rank() <= 1)
+  if(get_measurement_rank() == 0 )
       return ((end_time - start_time)/iterations) - qtime;
   else
       return -1.0;
@@ -158,13 +159,17 @@ double measure_Shmem_Pingpong_Put_Put( int count, int iterations ){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Put_Round( int count, int iterations ) {
+  sym = shmem_malloc( count );
+  shmem_fence();
   init_synchronization();
 }
 
+void finalize_Shmem_Put_Round( int count, int iterations ) {
+    shmem_free( sym );
+}
 
 double measure_Shmem_Put_Round( int count, int iterations ){
     double start_time = 1.0, end_time = 0.0, qtime;
-  char* sym;
   int i, rank, size;
   rank = shmem_my_pe();
   size = shmem_n_pes();
@@ -176,8 +181,6 @@ double measure_Shmem_Put_Round( int count, int iterations ){
     return 0.0;    /* avoid division by zero at the end */
   }
 
-  sym = shmem_malloc( count );
-  shmem_fence();
   start_time = start_synchronization();
   qtime =  measure_quiet( iterations );
 
@@ -189,20 +192,22 @@ double measure_Shmem_Put_Round( int count, int iterations ){
   }
 
   end_time = stop_synchronization();
-  shmem_free( sym );
   return ((end_time - start_time)/iterations) - qtime;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Put_Full( int count, int iterations ) {
+  sym = shmem_malloc( count );
+  shmem_fence();
   init_synchronization();
 }
-
+void finalize_Shmem_Put_Full( int count, int iterations ) {
+    shmem_free( sym );
+}
 
 double measure_Shmem_Put_Full( int count, int iterations ){
   double start_time = 1.0, end_time = 0.0;
-  char* sym;
   int i, rank, size;
   rank = shmem_my_pe();
   size = shmem_n_pes();
@@ -214,8 +219,6 @@ double measure_Shmem_Put_Full( int count, int iterations ){
     return 0.0;    /* avoid division by zero at the end */
   }
 
-  sym = shmem_malloc( count );
-  shmem_fence();
   start_time = start_synchronization();
 
   for (i=0; i<iterations; i++) {
@@ -224,19 +227,21 @@ double measure_Shmem_Put_Full( int count, int iterations ){
   }
 
   end_time = stop_synchronization();
-  shmem_free( sym );
   return (end_time - start_time)/iterations;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_P_Simple( int iterations ) {
+  sym = shmem_malloc( sizeof( int ) );
   init_synchronization();
+}
+void finalize_Shmem_P_Simple( int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_P_Simple( int iterations ){
     double btime, ptime = -1.0, t1, t2;
-    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -248,8 +253,6 @@ double measure_Shmem_P_Simple( int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( sizeof( int ) );
-    shmem_fence();
     t1 = start_synchronization();
 
     if( get_measurement_rank() == 0){
@@ -262,14 +265,13 @@ double measure_Shmem_P_Simple( int iterations ){
         
         t1 = wtime();
         for( i = 0 ; i < iterations ; i++ ) {
-            shmem_int_p( sym, i, 1 );
+            shmem_int_p( (int*)sym, i, 1 );
             shmem_quiet();
         }
         ptime = ( wtime() - t1 ) / iterations;
     }
     
     t1 = stop_synchronization();
-    shmem_free( sym );
     if( get_measurement_rank() == 0)
         return ptime - btime;
     else
@@ -278,12 +280,15 @@ double measure_Shmem_P_Simple( int iterations ){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_P_Round( int iterations ) {
+  sym = shmem_malloc( sizeof( int ) );
   init_synchronization();
+}
+void finalize_Shmem_P_Round( int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_P_Round( int iterations ){
     double btime, ptime = -1.0, t1, t2;
-    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -295,8 +300,6 @@ double measure_Shmem_P_Round( int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( sizeof( int ) );
-    shmem_fence();
     t1 = start_synchronization();
 
     /* Measure a large number of shmem_quiet operations */
@@ -307,26 +310,28 @@ double measure_Shmem_P_Round( int iterations ){
     
     t1 = wtime();
     for( i = 0 ; i < iterations ; i++ ) {
-        shmem_int_p( sym, i, (rank + 1 ) % size );
+        shmem_int_p( (int*)sym, i, (rank + 1 ) % size );
         shmem_quiet();
     }
     ptime = ( wtime() - t1 ) / iterations;
     
     t1 = stop_synchronization();
-    shmem_free( sym );
     return ptime - btime;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Iput_Round( int count, int stride, int iterations ) {
-  init_synchronization();
+    sym = shmem_malloc( count*sizeof( char ) * stride );
+    shmem_fence();
+    init_synchronization();
 }
-
+void finalize_Shmem_Iput_Round( int count, int stride, int iterations ) {
+    shmem_free( sym );
+}
 
 double measure_Shmem_Iput_Round( int count, int stride, int iterations ){
     double start_time = 1.0, end_time = 0.0, qtime;
-    char* sym;
     int i, rank, size;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -338,8 +343,6 @@ double measure_Shmem_Iput_Round( int count, int stride, int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( count*sizeof( char ) * stride );
-    shmem_fence();
     start_time = start_synchronization();
     
     qtime = measure_quiet( iterations );
@@ -351,7 +354,6 @@ double measure_Shmem_Iput_Round( int count, int stride, int iterations ){
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ((end_time - start_time)/iterations) - qtime;
 }
 
@@ -362,12 +364,14 @@ double measure_Shmem_Iput_Round( int count, int stride, int iterations ){
 */
 
 void init_Shmem_Put_Nonblocking_Post( int count, int iterations ) {
+  sym = shmem_malloc( count );
   init_synchronization();
 }
-
+void finalize_Shmem_Put_Nonblocking_Post( int count, int iterations ) {
+    shmem_free( sym );
+}
 double measure_Shmem_Put_Nonblocking_Post( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
-    char* sym;
     int i, rank, size;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -379,9 +383,6 @@ double measure_Shmem_Put_Nonblocking_Post( int count, int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( count );
-    shmem_fence();
-
     start_time = start_synchronization();
     
     for (i=0; i<iterations; i++) {
@@ -393,7 +394,6 @@ double measure_Shmem_Put_Nonblocking_Post( int count, int iterations ){
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ttime/iterations;
 }
 
@@ -404,12 +404,15 @@ double measure_Shmem_Put_Nonblocking_Post( int count, int iterations ){
 */
 
 void init_Shmem_Put_Nonblocking_Full( int count, int iterations ) {
-  init_synchronization();
+    sym = shmem_malloc( count );
+    init_synchronization();
+}
+void finalize_Shmem_Put_Nonblocking_Full( int count, int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_Put_Nonblocking_Full( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
-    char* sym;
     int i, rank, size;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -420,9 +423,6 @@ double measure_Shmem_Put_Nonblocking_Full( int count, int iterations ){
     if (iterations==0) {
         return 0.0;    /* avoid division by zero at the end */
     }
-    
-    sym = shmem_malloc( count );
-    shmem_fence();
     start_time = start_synchronization();
     
     for (i=0; i<iterations; i++) {
@@ -434,7 +434,6 @@ double measure_Shmem_Put_Nonblocking_Full( int count, int iterations ){
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ttime/iterations;
 }
 
@@ -446,12 +445,15 @@ double measure_Shmem_Put_Nonblocking_Full( int count, int iterations ){
 */
 
 void init_Shmem_Put_Nonblocking_Quiet( int count, int iterations ) {
+  sym = shmem_malloc( count );
   init_synchronization();
+}
+void finalize_Shmem_Put_Nonblocking_Quiet( int count, int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_Put_Nonblocking_Quiet( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
-    char* sym;
     int i, rank, size;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -463,8 +465,6 @@ double measure_Shmem_Put_Nonblocking_Quiet( int count, int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( count );
-    shmem_fence();
     start_time = start_synchronization();
     
     for (i=0; i<iterations; i++) {
@@ -476,7 +476,6 @@ double measure_Shmem_Put_Nonblocking_Quiet( int count, int iterations ){
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ttime/iterations;
 }
 
@@ -492,7 +491,6 @@ double measure_Shmem_Put_Nonblocking_Quiet( int count, int iterations ){
 */
 
 unsigned int overlap_sleep;
-char* sym;
 
 void init_Shmem_Put_Nonblocking_Overlap( int count, int iterations ) {
     double t1, t2, btime, mytime;
@@ -580,12 +578,15 @@ double measure_Shmem_Put_Nonblocking_Overlap( int count, int iterations ){
 */
 
 void init_Shmem_Get_Simple( int count, int iterations ) {
-  init_synchronization();
+    sym = shmem_malloc( count );
+    init_synchronization();
+}
+void finalize_Shmem_Get_Simple( int count, int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_Get_Simple( int count, int iterations ){
     double start_time = 1.0, end_time = 0.0;
-    char* sym;
     int i;
     
     if (iterations<0) {
@@ -594,9 +595,7 @@ double measure_Shmem_Get_Simple( int count, int iterations ){
     if (iterations==0) {
         return 0.0;    /* avoid division by zero at the end */
     }
-    
-    sym = shmem_malloc( count );
-    shmem_fence();
+
     if (get_measurement_rank() == 0){
         start_time = start_synchronization();
         
@@ -606,22 +605,25 @@ double measure_Shmem_Get_Simple( int count, int iterations ){
         
         end_time = stop_synchronization();
     }
-
-    shmem_free( sym );
     
-    return ( end_time - start_time )/iterations;
+  if(get_measurement_rank() == 0 )
+      return ( end_time - start_time )/iterations;
+  else
+      return -1.0;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Get_Round( int count, int iterations ) {
+  sym = shmem_malloc( count );
   init_synchronization();
 }
-
+void finalize_Shmem_Get_Round( int count, int iterations ) {
+    shmem_free( sym );
+}
 
 double measure_Shmem_Get_Round( int count, int iterations ){
   double start_time = 1.0, end_time = 0.0;
-  char* sym;
   int i, rank, size;
   rank = shmem_my_pe();
   size = shmem_n_pes();
@@ -633,8 +635,6 @@ double measure_Shmem_Get_Round( int count, int iterations ){
     return 0.0;    /* avoid division by zero at the end */
   }
 
-  sym = shmem_malloc( count );
-  shmem_fence();
   start_time = start_synchronization();
 
   for (i=0; i<iterations; i++) {
@@ -642,16 +642,18 @@ double measure_Shmem_Get_Round( int count, int iterations ){
   }
 
   end_time = stop_synchronization();
-  shmem_free( sym );
   return (end_time - start_time)/iterations;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Iget_Round( int count, int stride, int iterations ) {
+  sym = shmem_malloc( count*sizeof( char ) * stride );
   init_synchronization();
 }
-
+void finalize_Shmem_Iget_Round( int count, int stride, int iterations ) {
+    shmem_free( sym );
+}
 
 double measure_Shmem_Iget_Round( int count, int stride, int iterations ){
   double start_time = 1.0, end_time = 0.0;
@@ -667,8 +669,6 @@ double measure_Shmem_Iget_Round( int count, int stride, int iterations ){
     return 0.0;    /* avoid division by zero at the end */
   }
 
-  sym = shmem_malloc( count*sizeof( char ) * stride );
-  shmem_fence();
   start_time = start_synchronization();
 
   for (i=0; i<iterations; i++) {
@@ -676,7 +676,6 @@ double measure_Shmem_Iget_Round( int count, int stride, int iterations ){
   }
 
   end_time = stop_synchronization();
-  shmem_free( sym );
   return (end_time - start_time)/iterations;
 }
 
@@ -687,12 +686,15 @@ double measure_Shmem_Iget_Round( int count, int stride, int iterations ){
 */
 
 void init_Shmem_Get_Nonblocking_Post( int count, int iterations ) {
-  init_synchronization();
+    sym = shmem_malloc( count );
+    init_synchronization();
+}
+void finalize_Shmem_Get_Nonblocking_Post( int count, int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_Get_Nonblocking_Post( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
-    char* sym;
     int i, rank, size;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -702,10 +704,7 @@ double measure_Shmem_Get_Nonblocking_Post( int count, int iterations ){
     }
     if (iterations==0) {
         return 0.0;    /* avoid division by zero at the end */
-    }
-    
-    sym = shmem_malloc( count );
-    shmem_fence();
+    }    
 
     start_time = start_synchronization();
     
@@ -718,7 +717,6 @@ double measure_Shmem_Get_Nonblocking_Post( int count, int iterations ){
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ttime/iterations;
 }
 
@@ -773,12 +771,15 @@ double measure_Shmem_Get_Nonblocking_Full( int count, int iterations ){
 */
 
 void init_Shmem_Get_Nonblocking_Quiet( int count, int iterations ) {
+  sym = shmem_malloc( count );
   init_synchronization();
+}
+void finalize_Shmem_Get_Nonblocking_Quiet( int count, int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_Get_Nonblocking_Quiet( int count, int iterations ){
     double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
-    char* sym;
     int i, rank, size;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -790,7 +791,6 @@ double measure_Shmem_Get_Nonblocking_Quiet( int count, int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( count );
     start_time = start_synchronization();
     
     shmem_fence();
@@ -803,7 +803,6 @@ double measure_Shmem_Get_Nonblocking_Quiet( int count, int iterations ){
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return ttime/iterations;
 }
 
@@ -819,7 +818,7 @@ double measure_Shmem_Get_Nonblocking_Quiet( int count, int iterations ){
 */
 
 void init_Shmem_Get_Nonblocking_Overlap( int count, int iterations ) {
-  init_synchronization();
+    init_synchronization();
     double t1, t2, btime, mytime;
     int i, rank, size;
     rank = shmem_my_pe();
@@ -901,12 +900,15 @@ double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_G_Round( int iterations ) {
+  sym = shmem_malloc( sizeof( int ) );
   init_synchronization();
+}
+void finalize_Shmem_G_Round( int iterations ) {
+    shmem_free( sym );
 }
 
 double measure_Shmem_G_Round( int iterations ){
     double start_time = 1.0, end_time = 0.0;
-    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -918,28 +920,27 @@ double measure_Shmem_G_Round( int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( sizeof( int ) );
-    shmem_fence();
     start_time = start_synchronization();
     
     for( i = 0 ; i < iterations ; i++ ) {
-        k = shmem_int_g( sym, (rank + 1 ) % size );
+        k = shmem_int_g( (int*)sym, (rank + 1 ) % size );
     }
     
     end_time = stop_synchronization();
-    shmem_free( sym );
     return (end_time - start_time) / iterations;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_G_Simple( int iterations ) {
+  sym = shmem_malloc( sizeof( int ) );
   init_synchronization();
 }
-
+void finalize_Shmem_G_Simple( int iterations ) {
+    shmem_free( sym );
+}
 double measure_Shmem_G_Simple( int iterations ){
     double start_time = 1.0, end_time = 0.0;
-    int* sym;
     int i, rank, size, k;
     rank = shmem_my_pe();
     size = shmem_n_pes();
@@ -951,19 +952,18 @@ double measure_Shmem_G_Simple( int iterations ){
         return 0.0;    /* avoid division by zero at the end */
     }
     
-    sym = shmem_malloc( sizeof( int ) );
-    shmem_fence();
-    if( get_measurement_rank() == 0){
-        start_time = start_synchronization();
-        
+    start_time = start_synchronization();
+    if( get_measurement_rank() == 0){        
         for( i = 0 ; i < iterations ; i++ ) {
-            k = shmem_int_g( sym, (rank + 1 ) % size );
+            k = shmem_int_g( (int*)sym, (rank + 1 ) % size );
         }
-        end_time = stop_synchronization();
     }
-    
-    shmem_free( sym );
-    return (end_time - start_time) / iterations;
+    end_time = stop_synchronization();
+    if( get_measurement_rank() == 0){
+	return (end_time - start_time) / iterations;
+    } else{
+	return -1.0;
+    }
 }
 
 /*---------------------------------------------------------------------------*/

@@ -64,7 +64,7 @@ SourceBuf source_buf;
 bool log_source;
 
 #ifdef SKAMPI_OPENSHMEM
-long* psync = NULL;
+long psync[SHMEM_COLLECT_SYNC_SIZE];
 #endif
 
 void print_version_info(void)
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
   init_output();
 
 #ifdef SKAMPI_OPENSHMEM
-  if( NULL == psync ) psync = (long*) shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof(long) );
+  //  psync = (long*) shmem_malloc( SHMEM_COLLECT_SYNC_SIZE*sizeof(long) );
 #endif // SKAMPI_OPENSHMEM
 
  if( get_my_global_rank() == get_output_rank() ) {
