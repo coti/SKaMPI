@@ -23,10 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 #include <math.h>
 #ifdef SKAMPI_MPI
 #include <mpi.h>
-#else
+#endif
 #ifdef SKAMPI_OPENSHMEM
 #include <shmem.h>
-#endif
 #endif
 #include <assert.h>
 #include <math.h>
@@ -430,11 +429,11 @@ char * func_mpi_processor_names(void)
  #ifdef SKAMPI_MPI 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Get_processor_name(name, &namelen);
+#else
 #ifdef SKAMPI_OPENSHMEM
   rank = shmem_my_pe();
   gethostname( name, MPI_MAX_PROCESSOR_NAME ); 
   namelen = strlen( name );
-#else
 #endif
 #endif
 
