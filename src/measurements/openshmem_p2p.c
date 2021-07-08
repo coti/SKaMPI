@@ -435,13 +435,13 @@ double measure_Shmem_Put_Nonblocking_Post( int count, int iterations ){
     dst = (rank + 1 ) % size;   
     start_time = start_synchronization();
     
+    t1 = wtime();
     for (i=0; i<iterations; i++) {
-        t1 = wtime();
         shmem_putmem_nbi( sym, get_send_buffer(), count,  dst );
-        t2 = wtime();
-        ttime += (t2 - t1);
-        shmem_quiet();
     }
+    t2 = wtime();
+    ttime = t2 - t1;
+    shmem_quiet();
     
     end_time = stop_synchronization();
     return ttime/iterations;
@@ -450,8 +450,8 @@ double measure_Shmem_Put_Nonblocking_Post( int count, int iterations ){
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Put_Nonblocking_Post_Single( int count, int iterations, int therank ) {
-  sym = shmem_malloc( count );
-  init_synchronization();
+    sym = shmem_malloc( count );
+    init_synchronization();
 }
 void finalize_Shmem_Put_Nonblocking_Post_Single( int count, int iterations, int therank ) {
     shmem_free( sym );
@@ -471,17 +471,18 @@ double measure_Shmem_Put_Nonblocking_Post_Single( int count, int iterations, int
     
     dst = (rank + 1 ) % size;
     start_time = start_synchronization();
-
+    
     if( rank == therank ){
+        t1 = wtime();
         for (i=0; i<iterations; i++) {
-            t1 = wtime();
             shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
-            t2 = wtime();
-            ttime += (t2 - t1);
-            shmem_quiet();
         }
+        t2 = wtime();
+        ttime = t2 - t1;
     }
     
+    shmem_quiet();
+
     end_time = stop_synchronization();
     shmem_barrier_all();
     
@@ -918,17 +919,17 @@ double measure_Shmem_Get_Nonblocking_Post( int count, int iterations ){
 
    dst = (rank + 1 ) % size;
    start_time = start_synchronization();
-    
-    for (i=0; i<iterations; i++) {
-        t1 = wtime();
-        shmem_getmem_nbi( get_send_buffer(), sym, count, dst );
-        t2 = wtime();
-        ttime += (t2 - t1);
-        shmem_quiet();
-    }
-    
-    end_time = stop_synchronization();
-    return ttime/iterations;
+   
+   t1 = wtime();
+   for (i=0; i<iterations; i++) {
+       shmem_getmem_nbi( get_send_buffer(), sym, count, dst );
+   }
+   t2 = wtime();
+   ttime = t2 - t1;
+   shmem_quiet();
+   
+   end_time = stop_synchronization();
+   return ttime/iterations;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -958,13 +959,13 @@ double measure_Shmem_Get_Nonblocking_Post_Single( int count, int iterations, int
     start_time = start_synchronization();
     
     if( therank == rank ){
+        t1 = wtime();
         for (i=0; i<iterations; i++) {
-            t1 = wtime();
             shmem_getmem_nbi( get_send_buffer(), sym, count,  dst );
-            t2 = wtime();
-            ttime += (t2 - t1);
-            shmem_quiet();
         }
+        t2 = wtime();
+        ttime = t2 - t1;
+        shmem_quiet();
     }
     
     end_time = stop_synchronization();
