@@ -48,6 +48,17 @@ static char* source;
 static char* target;
 static char* sym;
 
+
+double measure_wtime( int iterations ){
+    double ttime, t1;
+    t1 = wtime();
+    for( int k = 0 ; k < iterations ; k++ ){
+        wtime();
+    }
+    ttime = wtime() - t1;
+    return ttime / iterations;
+}
+
 /*---------------------------------------------------------------------------*/
 /*                    Point-to-point routines                                */
 /*---------------------------------------------------------------------------*/
@@ -522,14 +533,14 @@ double measure_Shmem_Put_Nonblocking_Full( int count, int iterations ){
     dst = (rank + 1 ) % size;
     start_time = start_synchronization();
     
+    t1 = wtime();
     for (i=0; i<iterations; i++) {
-        t1 = wtime();
         shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
         shmem_quiet();
-        t2 = wtime();
-        ttime += (t2 - t1);
     }
-    
+    t2 = wtime();
+    ttime = (t2 - t1);
+
     end_time = stop_synchronization();
     return ttime/iterations;
 }
@@ -560,13 +571,13 @@ double measure_Shmem_Put_Nonblocking_Full_Single( int count, int iterations, int
     start_time = start_synchronization();
     
    if( therank == rank ){
+       t1 = wtime();
        for (i=0; i<iterations; i++) {
-           t1 = wtime();
            shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
            shmem_quiet();
-           t2 = wtime();
-           ttime += (t2 - t1);
        }
+       t2 = wtime();
+       ttime = (t2 - t1);
    }
    
    end_time = stop_synchronization();
@@ -585,9 +596,59 @@ double measure_Shmem_Put_Nonblocking_Full_Single( int count, int iterations, int
    ie the transfer time if no overlap is achieved.
 */
 
+double put_nbi_ttime;
+
+void init_Shmem_Put_Nonblocking_Quiet( int count, int iterations ) {
+    double t1, ttime;
+    int rank = shmem_my_pe();
+    int size = shmem_n_pes();
+    int dst = (rank + 1 ) % size;
+    sym = shmem_malloc( count );
+    /* measure the time it takes to post a putmem */
+    t1 = wtime();
+    for (int i=0; i<iterations; i++) {
+        shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
+    }
+    put_nbi_ttime = ( wtime() - t1 ) / iterations;
+    shmem_quiet();
+    init_synchronization();
+}
+void finalize_Shmem_Put_Nonblocking_Quiet( int count, int iterations ) {
+    shmem_free( sym );
+}
+
+double measure_Shmem_Put_Nonblocking_Quiet( int count, int iterations ){
+    double start_time, t1 = 1.0, end_time, t2 = 0.0, ttime = 0.0;
+    int i, rank, size, dst;
+    rank = shmem_my_pe();
+    size = shmem_n_pes();
+
+    if (iterations<0) {
+        return -1.0;   /* indicate that this definitely is an error */
+    }
+    if (iterations==0) {
+        return 0.0;    /* avoid division by zero at the end */
+    }
+
+    dst = (rank + 1 ) % size;
+    start_time = start_synchronization();
+    
+    t1 = wtime();        
+    for (i=0; i< iterations; i++) {
+        shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
+            shmem_quiet();
+    }
+    t2 = wtime();
+    ttime = (t2 - t1);
+        
+    end_time = stop_synchronization();
+    shmem_barrier_all();
+    
+    return ttime/iterations - put_nbi_ttime;
+}
+
 void init_Shmem_Put_Nonblocking_Quiet_Single( int count, int iterations, int therank ) {
-  sym = shmem_malloc( count );
-  init_synchronization();
+    init_Shmem_Put_Nonblocking_Quiet( count, iterations );
 }
 void finalize_Shmem_Put_Nonblocking_Quiet_Single( int count, int iterations, int therank ) {
     shmem_free( sym );
@@ -610,20 +671,20 @@ double measure_Shmem_Put_Nonblocking_Quiet_Single( int count, int iterations, in
     start_time = start_synchronization();
     
     if( therank == rank ){
-        for (i=0; i<iterations; i++) {
+        t1 = wtime();        
+        for (i=0; i< iterations; i++) {
             shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
-            t1 = wtime();
             shmem_quiet();
-            t2 = wtime();
-            ttime += (t2 - t1);
         }
+        t2 = wtime();
+        ttime = (t2 - t1);
     }
     
     end_time = stop_synchronization();
     shmem_barrier_all();
     
     if( therank == rank ){
-        return ttime/iterations;
+        return ttime/iterations - put_nbi_ttime;
     } else {
         return -1.0;
     }  
@@ -709,8 +770,8 @@ double measure_Shmem_Put_Nonblocking_Overlap( int count, int iterations ){
     start_time = start_synchronization();
     
     /* Perform the non-blocking operations */
+    t1 = wtime();
     for (i=0; i<iterations; i++) {
-        t1 = wtime();
         shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
         for( unsigned int k = 0 ; k < overlap_sleep ; k++ ){
             ww++;
@@ -719,8 +780,8 @@ double measure_Shmem_Put_Nonblocking_Overlap( int count, int iterations ){
         }
         /* This is what we are measuring */
         shmem_quiet();
-        ttime += wtime() - t1;
     }
+    ttime = wtime() - t1;
     shmem_barrier_all();
       
     end_time = stop_synchronization();
@@ -756,8 +817,8 @@ double measure_Shmem_Put_Nonblocking_Overlap_Single( int count, int iterations, 
 
     if( rank == therank ){
         /* Perform the non-blocking operations */
+        t1 = wtime();
         for (i=0; i<iterations; i++) {
-            t1 = wtime();
             shmem_putmem_nbi( sym, get_send_buffer(), count, dst );
             for( unsigned int k = 0 ; k < overlap_sleep ; k++ ){
                 ww++;
@@ -766,8 +827,8 @@ double measure_Shmem_Put_Nonblocking_Overlap_Single( int count, int iterations, 
             }
             /* This is what we are measuring */
             shmem_quiet();
-            ttime += wtime() - t1;
         }
+        ttime = wtime() - t1;
     }
     shmem_barrier_all();
       
@@ -1010,13 +1071,13 @@ double measure_Shmem_Get_Nonblocking_Full( int count, int iterations ){
     dst = (rank + 1 ) % size;
     start_time = start_synchronization();
     
+    t1 = wtime();
     for (i=0; i<iterations; i++) {
-        t1 = wtime();
         shmem_getmem_nbi( get_recv_buffer(), sym, count, dst );
         shmem_quiet();
-        t2 = wtime();
-        ttime += (t2 - t1);
     }
+    t2 = wtime();
+    ttime = (t2 - t1);
     
     end_time = stop_synchronization();
     return ttime/iterations;
@@ -1051,13 +1112,13 @@ double measure_Shmem_Get_Nonblocking_Full_Single( int count, int iterations, int
     start_time = start_synchronization();
     
     if( therank == rank ){
+        t1 = wtime();
         for (i=0; i<iterations; i++) {
-            t1 = wtime();
             shmem_getmem_nbi( get_recv_buffer(), sym, count, dst );
             shmem_quiet();
-            t2 = wtime();
-            ttime += (t2 - t1);
         }
+        t2 = wtime();
+        ttime = (t2 - t1);
     }
     
     end_time = stop_synchronization();
@@ -1076,9 +1137,22 @@ double measure_Shmem_Get_Nonblocking_Full_Single( int count, int iterations, int
    ie the transfer time if no overlap is achieved.
 */
 
+double get_nbi_ttime;
+
 void init_Shmem_Get_Nonblocking_Quiet( int count, int iterations ) {
-  sym = shmem_malloc( count );
-  init_synchronization();
+    double t1, ttime;
+    int rank = shmem_my_pe();
+    int size = shmem_n_pes();
+    int dst = (rank + 1 ) % size;
+    sym = shmem_malloc( count );
+    /* measure the time it takes to post a getmem */
+    t1 = wtime();
+    for (int i=0; i<iterations; i++) {
+        shmem_getmem_nbi( get_recv_buffer(), sym, count, dst );
+    }
+    get_nbi_ttime = ( wtime() - t1 ) / iterations;
+    shmem_quiet();
+    init_synchronization();
 }
 void finalize_Shmem_Get_Nonblocking_Quiet( int count, int iterations ) {
     shmem_free( sym );
@@ -1100,24 +1174,22 @@ double measure_Shmem_Get_Nonblocking_Quiet( int count, int iterations ){
     dst = (rank + 1 ) % size;
     start_time = start_synchronization();
     
-    shmem_fence();
+    t1 = wtime();
     for (i=0; i<iterations; i++) {
         shmem_getmem_nbi( get_recv_buffer(), sym, count, dst );
-        t1 = wtime();
         shmem_quiet();
-        t2 = wtime();
-        ttime += (t2 - t1);
     }
+    t2 = wtime();
+    ttime += (t2 - t1);
     
     end_time = stop_synchronization();
-    return ttime/iterations;
+    return ttime/iterations - get_nbi_ttime;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void init_Shmem_Get_Nonblocking_Quiet_Single( int count, int iterations, int therank ) {
-  sym = shmem_malloc( count );
-  init_synchronization();
+    init_Shmem_Get_Nonblocking_Quiet( count, iterations );
 }
 void finalize_Shmem_Get_Nonblocking_Quiet_Single( int count, int iterations, int therank ) {
     shmem_free( sym );
@@ -1140,20 +1212,20 @@ double measure_Shmem_Get_Nonblocking_Quiet_Single( int count, int iterations, in
     start_time = start_synchronization();
     
     if( therank == rank ){
+        t1 = wtime();
         for (i=0; i<iterations; i++) {
             shmem_getmem_nbi( get_recv_buffer(), sym, count, dst );
-            t1 = wtime();
             shmem_quiet();
-            t2 = wtime();
-            ttime += (t2 - t1);
         }
+        t2 = wtime();
+        ttime = (t2 - t1);
     }
     
     end_time = stop_synchronization();
     shmem_barrier_all();
     
     if( therank == rank ){
-        return ttime/iterations;
+        return ttime/iterations - get_nbi_ttime;
     } else {
         return -1.0;
     }  
@@ -1236,8 +1308,8 @@ double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
     start_time = start_synchronization();
     
     /* Perform the non-blocking operations */
+    t1 = wtime();
     for (i=0; i<iterations; i++) {
-        t1 = wtime();
         shmem_getmem_nbi( get_recv_buffer(), sym, count, dst );
         for( unsigned int k = 0 ; k < overlap_sleep ; k++ ){
             ww++;
@@ -1245,10 +1317,9 @@ double measure_Shmem_Get_Nonblocking_Overlap( int count, int iterations ){
             ww--;                
         }
         shmem_quiet();
-        t2 = wtime();
-        ttime += (t2 - t1);
     }
-    
+    t2 = wtime();
+    ttime = (t2 - t1);
     shmem_barrier_all();
       
     end_time = stop_synchronization();
@@ -1285,8 +1356,8 @@ double measure_Shmem_Get_Nonblocking_Overlap_Single( int count, int iterations, 
     
     /* Perform the non-blocking operations */
     if( therank == rank ){
+        t1 = wtime();
         for (i=0; i<iterations; i++) {
-            t1 = wtime();
             shmem_getmem_nbi( get_recv_buffer(), sym, count, dst );
             for( unsigned int k = 0 ; k < overlap_sleep ; k++ ){
                 ww++;
@@ -1294,9 +1365,9 @@ double measure_Shmem_Get_Nonblocking_Overlap_Single( int count, int iterations, 
                 ww--;                
             }
             shmem_quiet();
-            t2 = wtime();
-            ttime += (t2 - t1);
         }
+        t2 = wtime();
+        ttime += (t2 - t1);
     }
     
     shmem_barrier_all();
