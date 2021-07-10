@@ -674,12 +674,14 @@ void init_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
   */
   mytime = 0.0;
   i = 1e2;
+  int ww = 0;
   while( mytime < tbarrier ){
       i *= 2;
       start_time = wtime();
-      srand( getpid() );
       for( unsigned int k = 0 ; k < i ; k++ ){
-          int u = rand();
+	ww+=2;
+	asm("");
+	ww--;
       }
       mytime = wtime() - start_time;
   }
@@ -699,7 +701,7 @@ void finalize_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
 double measure_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
   double start_time, t1, rt1, t2, rt2, mytime;
   int rank = shmem_my_pe();
-  int i, dst, task;
+  int i, dst, task, ww = 0;
 
   /* The algorithm is written with two-sided communications. We are using atomic puts instead. */
   start_time = start_synchronization();
@@ -792,10 +794,11 @@ double measure_Shmem_Bcast_All_SK_time( int iterations, int count, int root ){
               rt2 += ( t2 - t1 );
               if( root == rank ){
                   /* Sleep to flush the ongoing communications */
-                  srand( getpid() );
                   for( unsigned int k = 0 ; k < iter_sleep ; k++ ){
-                      int u = rand();
-                  }
+		    ww+=2;
+		    asm("");
+		    ww--;
+		  }
               }
          }
           
