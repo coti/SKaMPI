@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Coti"
+  given-names: "Camille"
+  orcid: "https://orcid.org/0000-0002-1224-7786"
+- family-names: "Malony"
+  given-names: "Allen D."
+title: "SKaMPI-OpenSHMEM: Measuring OpenSHMEM Communication Routines"
+version: 1.0.0
+doi: https://doi.org/10.1007/978-3-031-04888-3_4
+date-released: 2022-05-20
+url: "https://github.com/coti/SKaMPI"
